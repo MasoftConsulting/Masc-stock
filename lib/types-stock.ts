@@ -95,6 +95,7 @@ export function symboleMouvement(type: TypeMouvement): string {
 }
 /* ------------------------------------------------------------------ clients */
 
+/** Table `clients` de masc-fiche (base partagée) : lecture seule ici. */
 export type Client = {
   id: string;
   nom: string;
@@ -102,8 +103,6 @@ export type Client = {
   telephone: string | null;
   email: string | null;
   adresse: string | null;
-  notes: string | null;
-  actif: boolean;
   created_at: string;
   updated_at: string;
 };

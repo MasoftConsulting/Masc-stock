@@ -1,0 +1,5 @@
+-- Migration appartenant à masc-fiche (base Supabase partagée), appliquée
+-- depuis ce projet-là le 25/09/2026. Son contenu vit dans le dépôt masc-fiche.
+--
+-- Ce fichier vide existe seulement pour que l'historique local corresponde à
+-- l'historique distant : sans lui, `supabase db push` refuse de s'exécuter.

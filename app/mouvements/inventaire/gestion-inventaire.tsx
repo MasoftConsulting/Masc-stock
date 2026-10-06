@@ -19,13 +19,19 @@ export function GestionInventaire({
     {},
   );
 
-  const filtres = useMemo(() => {
+  // Les produits hors recherche sont masqués, pas retirés du formulaire :
+  // sinon leurs quantités déjà saisies ne seraient pas envoyées.
+  const visibles = useMemo(() => {
     const terme = recherche.trim().toLowerCase();
-    if (!terme) return produits;
-    return produits.filter(
-      (p) =>
-        p.nom.toLowerCase().includes(terme) ||
-        p.reference.toLowerCase().includes(terme),
+    return new Set(
+      produits
+        .filter(
+          (p) =>
+            !terme ||
+            p.nom.toLowerCase().includes(terme) ||
+            p.reference.toLowerCase().includes(terme),
+        )
+        .map((p) => p.id),
     );
   }, [produits, recherche]);
 
@@ -87,7 +93,7 @@ export function GestionInventaire({
       </div>
 
       <section className="space-y-2">
-        {filtres.map((p) => {
+        {produits.map((p) => {
           const brut = comptes[p.id] ?? "";
           const compte = brut.trim() === "" ? null : Number(brut);
           const ecart =
@@ -98,6 +104,7 @@ export function GestionInventaire({
           return (
             <article
               key={p.id}
+              hidden={!visibles.has(p.id)}
               className="rounded-[1.6rem] bg-white/45 p-1.5 ring-1 ring-white/60"
             >
               <div className="rounded-[calc(1.6rem-0.375rem)] bg-surface px-5 py-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.9)] sm:px-6">
@@ -122,28 +129,21 @@ export function GestionInventaire({
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3">
-                    <div>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={brut}
-                        onChange={(e) =>
-                          setComptes((prev) => ({
-                            ...prev,
-                            [p.id]: e.target.value,
-                          }))
-                        }
-                        name={`compte_${p.id}`}
-                        placeholder="—"
-                        className="champ w-24 font-mono text-center"
-                      />
-                      <input
-                        type="hidden"
-                        name={`theorique_${p.id}`}
-                        value={p.quantite}
-                      />
-                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={brut}
+                      onChange={(e) =>
+                        setComptes((prev) => ({
+                          ...prev,
+                          [p.id]: e.target.value,
+                        }))
+                      }
+                      name={`compte_${p.id}`}
+                      placeholder="—"
+                      className="champ w-24 font-mono text-center"
+                    />
 
                     {compte !== null && Number.isFinite(compte) && (
                       <span

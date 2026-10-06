@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { lireSession } from "@/lib/session";
 import {
   creerMouvement,
-  creerAjustementsInventaire,
+  validerInventaire,
   supprimerMouvement,
 } from "@/lib/mouvements";
 import type { TypeMouvement } from "@/lib/types-stock";
@@ -69,8 +69,9 @@ export async function creerMouvementAction(
 }
 
 /**
- * Enregistre un inventaire complet : reçoit une liste de comptages,
- * crée un ajustement pour chaque écart non nul.
+ * Enregistre un inventaire complet. Le formulaire envoie un champ
+ * `compte_<idProduit>` par produit ; l'écart avec le stock réel est calculé
+ * par la base au moment de la validation (voir `validerInventaire`).
  */
 export async function validerInventaireAction(
   _etat: EtatMouvement,
@@ -79,39 +80,29 @@ export async function validerInventaireAction(
   const session = await lireSession();
   if (!session) return { erreur: "Non autorisé." };
 
-  const noteBase = texte(formData, "note") ?? "Inventaire physique";
-
-  // Le formulaire envoie des paires `compte_<idProduit>` et `theorique_<idProduit>`
-  // pour chaque produit affiché. On reconstruit les écarts côté serveur.
-  const ecarts: { produit_id: string; ecart: number; note: string }[] = [];
+  const comptes: { produit_id: string; compte: number }[] = [];
 
   for (const [cle, valeur] of formData.entries()) {
     if (!cle.startsWith("compte_")) continue;
-    const produitId = cle.slice("compte_".length);
     const brut = String(valeur).trim();
     if (!brut) continue; // Non compté → ignoré
 
     const compte = Number(brut);
-    if (!Number.isFinite(compte) || compte < 0) continue;
-
-    const theorique = Number(formData.get(`theorique_${produitId}`) ?? 0);
-    const ecart = Math.trunc(compte) - Math.trunc(theorique);
-
-    if (ecart !== 0) {
-      ecarts.push({
-        produit_id: produitId,
-        ecart,
-        note: noteBase,
-      });
+    if (!Number.isInteger(compte) || compte < 0) {
+      return { erreur: "Les quantités comptées doivent être des entiers positifs." };
     }
+    comptes.push({ produit_id: cle.slice("compte_".length), compte });
   }
 
-  if (ecarts.length === 0) {
-    return { erreur: "Aucun écart détecté — rien à ajuster." };
+  if (comptes.length === 0) {
+    return { erreur: "Aucune quantité saisie." };
   }
 
-  const resultat = await creerAjustementsInventaire(ecarts);
+  const resultat = await validerInventaire(comptes, texte(formData, "note"));
   if ("erreur" in resultat) return { erreur: resultat.erreur };
+  if (resultat.nombre === 0) {
+    return { erreur: "Aucun écart avec le stock actuel — rien à ajuster." };
+  }
 
   revalidatePath("/mouvements");
   revalidatePath("/produits");

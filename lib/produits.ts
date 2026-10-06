@@ -16,35 +16,6 @@ const TABLE = "produits";
 
 /* ---------------------------------------------------------------- lecture */
 
-export async function listerProduitsAvecStock(): Promise<ProduitAvecStock[]> {
-  const supabase = createAdminClient();
-  if (!supabase) return [];
-
-  const { data, error } = await supabase
-    .from("stock_actuel")
-    .select("*")
-    .order("nom");
-
-  if (error) {
-    console.error("[produits] listerProduitsAvecStock", error.message);
-    return [];
-  }
-
-  return (data ?? []).map((ligne) => ({
-    id: ligne.id,
-    reference: ligne.reference,
-    nom: ligne.nom,
-    categorie_id: ligne.categorie_id,
-    categorie_nom: ligne.categorie_nom,
-    description: null,
-    seuil_alerte: ligne.seuil_alerte,
-    actif: true,
-    quantite: ligne.quantite,
-    created_at: "",
-    updated_at: "",
-  })) as ProduitAvecStock[];
-}
-
 export async function listerProduitsComplet(): Promise<ProduitAvecStock[]> {
   const supabase = createAdminClient();
   if (!supabase) return [];
@@ -142,18 +113,12 @@ export async function supprimerProduit(id: string): Promise<{ erreur?: string }>
   const supabase = createAdminClient();
   if (!supabase) return { erreur: "Supabase n'est pas configuré." };
 
-  const { count, error: errCount } = await supabase
-    .from("mouvements")
-    .select("*", { count: "exact", head: true })
-    .eq("produit_id", id);
-
-  if (errCount) return { erreur: errCount.message };
-  if ((count ?? 0) > 0) {
+  // La clé étrangère mouvements → produits est en ON DELETE RESTRICT.
+  const { error } = await supabase.from(TABLE).delete().eq("id", id);
+  if (error?.code === "23503") {
     return {
-      erreur: `Impossible : ${count} mouvement(s) concernent ce produit. Désactivez-le au lieu de le supprimer.`,
+      erreur: "Impossible : des mouvements concernent ce produit. Désactivez-le au lieu de le supprimer.",
     };
   }
-
-  const { error } = await supabase.from(TABLE).delete().eq("id", id);
   return error ? { erreur: error.message } : {};
 }

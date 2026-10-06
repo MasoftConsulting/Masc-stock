@@ -143,64 +143,38 @@ export async function creerMouvement(
 }
 
 /**
- * Crée en lot les ajustements d'un inventaire.
+ * Valide un inventaire physique via la fonction Postgres `valider_inventaire`.
  *
- * Un inventaire physique produit autant d'ajustements qu'il y a d'écarts.
- * On les insère d'un coup (une seule requête) puis on journalise côté action.
+ * On n'envoie que les quantités comptées : l'écart est calculé par la base
+ * avec le stock réel au moment de la validation, dans une seule transaction.
+ * Retourne le nombre d'ajustements créés.
  */
-export async function creerAjustementsInventaire(
-  lignes: {
-    produit_id: string;
-    ecart: number;
-    note: string;
-  }[],
+export async function validerInventaire(
+  comptes: { produit_id: string; compte: number }[],
+  note: string | null,
 ): Promise<{ nombre: number } | { erreur: string }> {
-  if (lignes.length === 0) return { nombre: 0 };
-
   const supabase = createAdminClient();
   if (!supabase) return { erreur: "Supabase n'est pas configuré." };
 
-  const aujourdhui = new Date().toISOString().slice(0, 10);
-
-  const { error } = await supabase.from(TABLE).insert(
-    lignes.map((l) => ({
-      date_mouvement: aujourdhui,
-      produit_id: l.produit_id,
-      type: "ajustement",
-      quantite: l.ecart, // peut être positif ou négatif
-      client_id: null,
-      fournisseur: null,
-      note: l.note,
-    })),
-  );
+  const { data, error } = await supabase.rpc("valider_inventaire", {
+    p_comptes: comptes,
+    p_note: note,
+  });
 
   if (error) return { erreur: error.message };
-  return { nombre: lignes.length };
+  return { nombre: data as number };
 }
 
 /**
- * Supprime un mouvement (uniquement les ajustements — les entrées et sorties
- * sont immuables pour préserver la traçabilité).
+ * Supprime un ajustement. La base refuse la suppression des entrées et
+ * sorties (historique) et toute suppression qui rendrait le stock négatif ;
+ * ses messages d'erreur sont rédigés pour être affichés tels quels.
  */
 export async function supprimerMouvement(
   id: string,
 ): Promise<{ erreur?: string }> {
   const supabase = createAdminClient();
   if (!supabase) return { erreur: "Supabase n'est pas configuré." };
-
-  const { data: mouvement } = await supabase
-    .from(TABLE)
-    .select("type")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!mouvement) return { erreur: "Mouvement introuvable." };
-  if (mouvement.type !== "ajustement") {
-    return {
-      erreur:
-        "Seuls les ajustements peuvent être supprimés. Les entrées et sorties sont conservées pour l'historique.",
-    };
-  }
 
   const { error } = await supabase.from(TABLE).delete().eq("id", id);
   return error ? { erreur: error.message } : {};

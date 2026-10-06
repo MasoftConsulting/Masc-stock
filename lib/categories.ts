@@ -107,18 +107,13 @@ export async function supprimerCategorie(id: string): Promise<{ erreur?: string 
   const supabase = createAdminClient();
   if (!supabase) return { erreur: "Supabase n'est pas configuré." };
 
-  const { count, error: errCount } = await supabase
-    .from("produits")
-    .select("*", { count: "exact", head: true })
-    .eq("categorie_id", id);
-
-  if (errCount) return { erreur: errCount.message };
-  if ((count ?? 0) > 0) {
+  // La clé étrangère produits → categories est en ON DELETE RESTRICT :
+  // c'est la base qui refuse, sans fenêtre entre vérification et suppression.
+  const { error } = await supabase.from(TABLE).delete().eq("id", id);
+  if (error?.code === "23503") {
     return {
-      erreur: `Impossible : ${count} produit(s) utilisent cette catégorie.`,
+      erreur: "Impossible : des produits utilisent cette catégorie. Désactivez-la ou reclassez-les d'abord.",
     };
   }
-
-  const { error } = await supabase.from(TABLE).delete().eq("id", id);
   return error ? { erreur: error.message } : {};
 }
