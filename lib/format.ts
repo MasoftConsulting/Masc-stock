@@ -26,3 +26,24 @@ export function formaterDate(valeur: string | null | undefined): string {
 export function formaterNombre(valeur: number): string {
   return valeur.toLocaleString("fr-FR");
 }
+
+/**
+ * Forme canonique pour la recherche : sans accents, sans casse, sans tirets
+ * ni espaces. « BPGT70MA » trouve « BP-GT70MA », « developpeur » trouve
+ * « Développeur ».
+ */
+export function normaliser(texte: string | null | undefined): string {
+  return (texte ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[\s\-_./]/g, "");
+}
+
+/** Vrai si le terme (déjà normalisé) apparaît dans l'un des champs. */
+export function correspond(
+  termeNormalise: string,
+  ...champs: (string | null | undefined)[]
+): boolean {
+  return !termeNormalise || champs.some((c) => normaliser(c).includes(termeNormalise));
+}

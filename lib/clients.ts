@@ -107,6 +107,7 @@ export async function lireFicheClient(
       clientId: id,
       depuis: periode.du ?? undefined,
       jusqua: periode.au ?? undefined,
+      horsAnnules: true,
       limite: LIMITE_DETAIL,
     }),
   ]);

@@ -1,22 +1,27 @@
 import Link from "next/link";
-import { Coquille } from "@/components/coquille";
 import { Reveler } from "@/components/reveler";
 import { Carte, EnTetePage, Indicateur, TitreSection, Vide } from "@/components/ui";
 import { lireTableauDeBord } from "@/lib/tableau-de-bord";
 import { formaterDate, formaterNombre } from "@/lib/format";
-import { statutStock, symboleMouvement } from "@/lib/types-stock";
+import { formaterDelta, natureMouvement, statutStock } from "@/lib/types-stock";
+
+const PASTILLE = {
+  jade: "bg-jade/10 text-jade",
+  amber: "bg-amber/10 text-amber",
+  neutre: "bg-ink/6 text-ink-soft",
+};
 
 export const dynamic = "force-dynamic";
 
 const LIEN_DISCRET =
-  "rounded-full px-3 py-1.5 text-[0.75rem] text-ink-soft transition-all duration-500 ease-mass hover:bg-ink/5 hover:text-ink";
+  "rounded-full px-3 py-1.5 text-[0.85rem] text-ink-soft transition-all duration-500 ease-mass hover:bg-ink/5 hover:text-ink";
 
 export default async function PageTableauDeBord() {
   const tdb = await lireTableauDeBord();
   const { produits, activite } = tdb;
 
   return (
-    <Coquille>
+    <>
       <Reveler>
         <EnTetePage
           rubrique="Tableau de bord"
@@ -80,7 +85,7 @@ export default async function PageTableauDeBord() {
                   return (
                     <li key={p.id} className="flex items-center gap-4 py-3">
                       <div className="min-w-0 flex-1">
-                        <p className="font-mono text-[0.7rem] tracking-[0.06em] text-brand">
+                        <p className="font-mono text-[0.8rem] tracking-[0.06em] text-brand">
                           {p.reference}
                         </p>
                         <p className="truncate text-[0.88rem]">{p.nom}</p>
@@ -93,10 +98,17 @@ export default async function PageTableauDeBord() {
                         >
                           {p.quantite}
                         </p>
-                        <p className="mt-1 text-[0.66rem] text-ink-faint">
+                        <p className="mt-1 text-[0.8rem] text-ink-faint">
                           seuil {p.seuil_alerte}
                         </p>
                       </div>
+                      <Link
+                        href={`/mouvements?nouveau=entree&produit=${p.id}`}
+                        className="shrink-0 rounded-full bg-ink/5 px-3.5 py-2 text-[0.85rem] font-medium text-ink transition-all duration-500 ease-mass hover:bg-ink/10"
+                        aria-label={`Enregistrer une entrée pour ${p.reference}`}
+                      >
+                        <span aria-hidden="true" className="text-jade">↑</span> Entrée
+                      </Link>
                     </li>
                   );
                 })}
@@ -126,7 +138,7 @@ export default async function PageTableauDeBord() {
                       href={`/clients/${c.id}?periode=mois`}
                       className="flex items-center gap-3 py-3 transition-colors duration-500 ease-mass hover:text-navy"
                     >
-                      <span className="w-4 font-mono text-[0.7rem] text-ink-faint">
+                      <span className="w-4 font-mono text-[0.8rem] text-ink-faint">
                         {i + 1}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[0.88rem]">{c.nom}</span>
@@ -156,42 +168,39 @@ export default async function PageTableauDeBord() {
             <Vide>Aucun mouvement enregistré.</Vide>
           ) : (
             <ul className="divide-y divide-hairline">
-              {tdb.derniersMouvements.map((m) => (
-                <li key={m.id} className="flex items-center gap-4 py-3">
-                  <span
-                    className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[0.9rem] ${
-                      m.type === "entree"
-                        ? "bg-jade/10 text-jade"
-                        : m.type === "sortie"
-                          ? "bg-amber/10 text-amber"
-                          : "bg-ink/6 text-ink-soft"
-                    }`}
-                  >
-                    {symboleMouvement(m.type)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[0.88rem]">
-                      <span className="font-mono text-[0.7rem] text-brand">
-                        {m.produit_reference}
-                      </span>{" "}
-                      {m.produit_nom}
-                    </p>
-                    <p className="text-[0.72rem] text-ink-faint">
-                      {formaterDate(m.date_mouvement)}
-                      {m.client_nom && ` · ${m.client_nom}`}
-                      {m.fournisseur && ` · ${m.fournisseur}`}
-                    </p>
-                  </div>
-                  <span className="font-display text-[1.05rem] font-semibold">
-                    {m.type === "entree" ? "+" : m.type === "sortie" ? "−" : m.quantite > 0 ? "+" : "−"}
-                    {Math.abs(m.quantite)}
-                  </span>
-                </li>
-              ))}
+              {tdb.derniersMouvements.map((m) => {
+                const nature = natureMouvement(m);
+                const annule = m.annule_par !== null;
+                return (
+                  <li key={m.id} className={`flex items-center gap-4 py-3 ${annule ? "opacity-60" : ""}`}>
+                    <span
+                      aria-hidden="true"
+                      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[0.9rem] ${PASTILLE[nature.ton]}`}
+                    >
+                      {nature.symbole}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[0.9rem]">
+                        <span className="font-mono text-[0.8rem] text-brand">{m.produit_reference}</span>{" "}
+                        {m.produit_nom}
+                      </p>
+                      <p className="text-[0.82rem] text-ink-faint">
+                        {nature.libelle}
+                        {annule && " (annulée)"} · {formaterDate(m.date_mouvement)}
+                        {m.client_nom && ` · ${m.client_nom}`}
+                        {m.fournisseur && ` · ${m.fournisseur}`}
+                      </p>
+                    </div>
+                    <span className={`font-display text-[1.05rem] font-semibold ${annule ? "line-through" : ""}`}>
+                      {formaterDelta(nature.delta)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Carte>
       </Reveler>
-    </Coquille>
+    </>
   );
 }

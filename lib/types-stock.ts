@@ -29,6 +29,8 @@ export type Produit = {
   nom: string;
   categorie_id: string | null;
   description: string | null;
+  /** Modèles d'imprimantes compatibles, texte libre (« BP-70C31, BP-70C36 »). */
+  compatibilite: string | null;
   seuil_alerte: number;
   actif: boolean;
   created_at: string;
@@ -45,6 +47,7 @@ export type ChampsProduit = {
   nom: string;
   categorie_id: string | null;
   description: string | null;
+  compatibilite: string | null;
   seuil_alerte: number;
 };
 
@@ -72,6 +75,10 @@ export type Mouvement = {
   client_id: string | null;
   fournisseur: string | null;
   note: string | null;
+  /** Renseigné si ce mouvement a été annulé : id de l'annulation. */
+  annule_par: string | null;
+  /** Renseigné si ce mouvement EST une annulation : id du mouvement annulé. */
+  annulation_de: string | null;
   created_at: string;
 };
 
@@ -81,12 +88,33 @@ export type MouvementAvecDetails = Mouvement & {
   client_nom: string | null;
 };
 
-/** Signe visuel d'un mouvement (↑ entrée, ↓ sortie, ⚙ ajustement). */
-export function symboleMouvement(type: TypeMouvement): string {
-  if (type === "entree") return "↑";
-  if (type === "sortie") return "↓";
-  return "⚙";
+/** Présentation d'un mouvement : libellé, symbole, ton, effet signé sur le stock. */
+export type Nature = {
+  libelle: string;
+  symbole: string;
+  ton: "jade" | "amber" | "neutre";
+  /** Variation du stock (+ entrée, − sortie). */
+  delta: number;
+};
+
+export function natureMouvement(m: Pick<Mouvement, "type" | "quantite" | "annulation_de">): Nature {
+  if (m.annulation_de) {
+    return { libelle: "Annulation", symbole: "↺", ton: "neutre", delta: m.quantite };
+  }
+  if (m.type === "entree") {
+    return { libelle: "Entrée", symbole: "↑", ton: "jade", delta: m.quantite };
+  }
+  if (m.type === "sortie") {
+    return { libelle: "Sortie", symbole: "↓", ton: "amber", delta: -m.quantite };
+  }
+  return { libelle: "Ajustement", symbole: "⚙", ton: "neutre", delta: m.quantite };
 }
+
+/** « +3 », « −2 » (vrai signe moins). */
+export function formaterDelta(delta: number): string {
+  return `${delta >= 0 ? "+" : "−"}${Math.abs(delta)}`;
+}
+
 /* ------------------------------------------------------------------ clients */
 
 /** Table `clients` de masc-fiche (base partagée) : lecture seule ici. */

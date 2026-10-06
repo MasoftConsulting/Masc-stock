@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { actionFormulaire, actionSimple, type EtatAction } from "@/lib/action";
+import { actionFormulaire, type EtatAction } from "@/lib/action";
 import { champ } from "@/lib/champs";
 import {
   creerMouvement,
   validerInventaire,
-  supprimerMouvement,
+  annulerMouvement,
 } from "@/lib/mouvements";
 
 export type EtatMouvement = EtatAction;
@@ -17,6 +17,7 @@ function revaliderStock() {
   revalidatePath("/mouvements");
   revalidatePath("/produits");
   revalidatePath("/");
+  revalidatePath("/clients", "layout");
 }
 
 const champsCommuns = {
@@ -43,7 +44,10 @@ export const creerEntreeAction = actionFormulaire(
     if ("erreur" in resultat) return { erreur: resultat.erreur };
 
     revaliderStock();
-    return { token: resultat.mouvement.id };
+    return {
+      token: resultat.mouvement.id,
+      message: `Entrée enregistrée : +${d.quantite}.`,
+    };
   },
 );
 
@@ -61,7 +65,10 @@ export const creerSortieAction = actionFormulaire(
     if ("erreur" in resultat) return { erreur: resultat.erreur };
 
     revaliderStock();
-    return { token: resultat.mouvement.id };
+    return {
+      token: resultat.mouvement.id,
+      message: `Sortie enregistrée : −${d.quantite}.`,
+    };
   },
 );
 
@@ -114,15 +121,17 @@ export const validerInventaireAction = actionFormulaire(
   },
 );
 
-export const supprimerMouvementAction = actionSimple(
-  z.object({ id: champ.id }),
-  async ({ id }) => {
-    const resultat = await supprimerMouvement(id);
-    if (resultat.erreur) {
-      redirect(`/mouvements?erreur=${encodeURIComponent(resultat.erreur)}`);
-    }
+/** Annule un mouvement (ajustement inverse lié à l'original). */
+export const annulerMouvementAction = actionFormulaire(
+  z.object({
+    id: champ.id,
+    motif: champ.texte("Indiquez le motif de l'annulation."),
+  }),
+  async ({ id, motif }) => {
+    const resultat = await annulerMouvement(id, motif);
+    if (resultat.erreur) return { erreur: resultat.erreur };
 
     revaliderStock();
-    redirect("/mouvements?supprime=1");
+    return { token: `${id}-annule`, message: "Mouvement annulé." };
   },
 );

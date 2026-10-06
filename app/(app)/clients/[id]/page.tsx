@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Coquille } from "@/components/coquille";
 import { Reveler } from "@/components/reveler";
 import { Carte, EnTetePage, Indicateur, TitreSection, Vide } from "@/components/ui";
 import { SelecteurPeriode } from "@/components/selecteur-periode";
@@ -47,7 +46,7 @@ export default async function PageFicheClient({
   );
 
   return (
-    <Coquille>
+    <>
       <Reveler>
         <EnTetePage
           rubrique="Fiche d'inventaire client"
@@ -128,7 +127,7 @@ export default async function PageFicheClient({
             <div className="-mx-2 overflow-x-auto">
               <table className="w-full min-w-[36rem] text-left text-[0.85rem]">
                 <thead>
-                  <tr className="text-[0.68rem] uppercase tracking-widest text-ink-faint">
+                  <tr className="text-[0.82rem] uppercase tracking-widest text-ink-faint">
                     <th className="px-2 pb-3 font-medium">Référence</th>
                     <th className="px-2 pb-3 font-medium">Produit</th>
                     <th className="px-2 pb-3 text-right font-medium">Unités</th>
@@ -139,13 +138,13 @@ export default async function PageFicheClient({
                 <tbody className="divide-y divide-hairline">
                   {lignes.map((l) => (
                     <tr key={l.produit_id}>
-                      <td className="px-2 py-3 font-mono text-[0.72rem] text-brand">
+                      <td className="px-2 py-3 font-mono text-[0.8rem] text-brand">
                         {l.reference}
                       </td>
                       <td className="px-2 py-3">
                         {l.nom}
                         {l.categorie_nom && (
-                          <span className="ml-2 text-[0.72rem] text-ink-faint">
+                          <span className="ml-2 text-[0.8rem] text-ink-faint">
                             {l.categorie_nom}
                           </span>
                         )}
@@ -197,12 +196,12 @@ export default async function PageFicheClient({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[0.85rem]">
-                      <span className="font-mono text-[0.7rem] text-brand">
+                      <span className="font-mono text-[0.8rem] text-brand">
                         {m.produit_reference}
                       </span>{" "}
                       {m.produit_nom}
                     </p>
-                    {m.note && <p className="truncate text-[0.72rem] text-ink-faint">{m.note}</p>}
+                    {m.note && <p className="truncate text-[0.8rem] text-ink-faint">{m.note}</p>}
                   </div>
                   <span className="font-display text-[1.05rem] font-semibold">
                     {formaterNombre(m.quantite)}
@@ -213,6 +212,6 @@ export default async function PageFicheClient({
           </Carte>
         </Reveler>
       )}
-    </Coquille>
+    </>
   );
 }

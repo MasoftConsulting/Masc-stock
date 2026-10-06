@@ -20,7 +20,7 @@ export function SelecteurPeriode({
           <Link
             key={code}
             href={`${chemin}?periode=${code}`}
-            className={`rounded-full px-3.5 py-1.5 text-[0.78rem] font-medium transition-all duration-500 ease-mass ${
+            className={`rounded-full px-3.5 py-1.5 text-[0.82rem] font-medium transition-all duration-500 ease-mass ${
               periode.code === code
                 ? "bg-ink text-white"
                 : "text-ink-soft hover:bg-ink/5 hover:text-ink"
@@ -52,7 +52,7 @@ export function SelecteurPeriode({
         </label>
         <button
           type="submit"
-          className={`rounded-full px-4 py-2 text-[0.78rem] font-medium transition-all duration-500 ease-mass ${
+          className={`rounded-full px-4 py-2 text-[0.82rem] font-medium transition-all duration-500 ease-mass ${
             periode.code === "personnalisee"
               ? "bg-ink text-white"
               : "bg-ink/5 text-ink hover:bg-ink/10"

@@ -6,6 +6,8 @@ import {
   type EtatMouvement,
 } from "../actions";
 import type { ProduitAvecStock } from "@/lib/types-stock";
+import { correspond, normaliser } from "@/lib/format";
+import { MessageErreur } from "@/components/ui";
 
 export function GestionInventaire({
   produits,
@@ -22,15 +24,10 @@ export function GestionInventaire({
   // Les produits hors recherche sont masqués, pas retirés du formulaire :
   // sinon leurs quantités déjà saisies ne seraient pas envoyées.
   const visibles = useMemo(() => {
-    const terme = recherche.trim().toLowerCase();
+    const terme = normaliser(recherche);
     return new Set(
       produits
-        .filter(
-          (p) =>
-            !terme ||
-            p.nom.toLowerCase().includes(terme) ||
-            p.reference.toLowerCase().includes(terme),
-        )
+        .filter((p) => correspond(terme, p.reference, p.nom, p.compatibilite, p.categorie_nom))
         .map((p) => p.id),
     );
   }, [produits, recherche]);
@@ -73,10 +70,11 @@ export function GestionInventaire({
           <label className="block">
             <span className="etiquette">Rechercher un produit</span>
             <input
+              type="search"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               className="champ"
-              placeholder="Référence, nom…"
+              placeholder="Référence, nom, imprimante…"
               autoComplete="off"
             />
           </label>
@@ -111,11 +109,11 @@ export function GestionInventaire({
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-2.5">
-                      <span className="font-mono text-[0.72rem] tracking-[0.06em] text-brand">
+                      <span className="font-mono text-[0.8rem] tracking-[0.06em] text-brand">
                         {p.reference}
                       </span>
                       {p.categorie_nom && (
-                        <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[0.62rem] text-navy">
+                        <span className="rounded-full bg-navy/[0.07] px-2 py-0.5 text-[0.82rem] text-navy">
                           {p.categorie_nom}
                         </span>
                       )}
@@ -123,7 +121,7 @@ export function GestionInventaire({
                     <p className="mt-1 truncate text-[0.9rem] text-ink">
                       {p.nom}
                     </p>
-                    <p className="mt-1 text-[0.72rem] text-ink-faint">
+                    <p className="mt-1 text-[0.8rem] text-ink-faint">
                       Théorique : {p.quantite}
                     </p>
                   </div>
@@ -131,6 +129,7 @@ export function GestionInventaire({
                   <div className="flex shrink-0 items-center gap-3">
                     <input
                       type="number"
+                      inputMode="numeric"
                       min={0}
                       step={1}
                       value={brut}
@@ -147,7 +146,7 @@ export function GestionInventaire({
 
                     {compte !== null && Number.isFinite(compte) && (
                       <span
-                        className={`min-w-[3.5rem] rounded-full px-2.5 py-1 text-center font-mono text-[0.72rem] ${
+                        className={`min-w-[3.5rem] rounded-full px-2.5 py-1 text-center font-mono text-[0.8rem] ${
                           ecart === 0
                             ? "bg-ink/[0.05] text-ink-soft"
                             : ecart > 0
@@ -166,11 +165,7 @@ export function GestionInventaire({
         })}
       </section>
 
-      {etat.erreur && (
-        <p className="rounded-2xl bg-rouille/10 px-5 py-3.5 text-[0.85rem] text-rouille">
-          {etat.erreur}
-        </p>
-      )}
+      {etat.erreur && <MessageErreur>{etat.erreur}</MessageErreur>}
 
       <div className="sticky bottom-4 z-10 flex justify-center">
         <div className="flex items-center gap-3 rounded-full bg-ink py-2 pr-2 pl-5 text-white shadow-flottant">

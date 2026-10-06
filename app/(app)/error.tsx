@@ -21,7 +21,7 @@ export default function PageErreur({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-16">
+    <div className="mx-auto w-full max-w-md pt-16">
       <div className="rounded-[2rem] bg-white/45 p-1.5 ring-1 ring-white/60 shadow-flottant">
         <div className="rounded-[calc(2rem-0.375rem)] bg-surface p-6 text-center sm:p-8">
           <p className="font-display text-[1.4rem] font-semibold tracking-[-0.03em]">
@@ -33,12 +33,12 @@ export default function PageErreur({
           </p>
 
           {process.env.NODE_ENV === "development" ? (
-            <p className="mt-5 rounded-2xl bg-rouille/10 px-4 py-3 text-left font-mono text-[0.75rem] text-rouille">
+            <p className="mt-5 rounded-2xl bg-rouille/10 px-4 py-3 text-left font-mono text-[0.82rem] text-rouille">
               {error.message}
             </p>
           ) : (
             error.digest && (
-              <p className="mt-5 font-mono text-[0.7rem] text-ink-faint">
+              <p className="mt-5 font-mono text-[0.8rem] text-ink-faint">
                 Référence : {error.digest}
               </p>
             )
@@ -61,6 +61,6 @@ export default function PageErreur({
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

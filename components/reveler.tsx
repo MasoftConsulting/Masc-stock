@@ -1,12 +1,12 @@
-"use client";
-
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 /**
- * Révèle son contenu avec un léger effet d'apparition (opacité + translation).
+ * Apparition douce (opacité + légère translation), en CSS pur : le contenu
+ * rendu par le serveur est visible sans attendre le JavaScript, et
+ * l'animation est désactivée si l'utilisateur préfère réduire les
+ * animations (voir `.reveler` dans globals.css).
  *
- * `delai` (ms) permet de créer une cascade quand plusieurs Revealer sont
- * empilés verticalement.
+ * `delai` (ms) crée une cascade quand plusieurs blocs sont empilés.
  */
 export function Reveler({
   children,
@@ -15,20 +15,8 @@ export function Reveler({
   children: ReactNode;
   delai?: number;
 }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setVisible(true), delai);
-    return () => window.clearTimeout(t);
-  }, [delai]);
-
   return (
-    <div
-      style={{ transitionDelay: `${delai}ms` }}
-      className={`transition-all duration-700 ease-mass ${
-        visible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-      }`}
-    >
+    <div className="reveler" style={{ animationDelay: `${delai}ms` }}>
       {children}
     </div>
   );

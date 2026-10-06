@@ -16,6 +16,8 @@ export type FiltresMouvements = {
   depuis?: string;
   /** Date ISO de fin (incluse). */
   jusqua?: string;
+  /** Exclut les mouvements annulés (fiches client). */
+  horsAnnules?: boolean;
   /** Nombre maximum d'entrées à retourner. Par défaut 200. */
   limite?: number;
 };
@@ -46,6 +48,7 @@ export async function listerMouvements(
   if (filtres.clientId) requete = requete.eq("client_id", filtres.clientId);
   if (filtres.depuis) requete = requete.gte("date_mouvement", filtres.depuis);
   if (filtres.jusqua) requete = requete.lte("date_mouvement", filtres.jusqua);
+  if (filtres.horsAnnules) requete = requete.is("annule_par", null);
 
   const { data, error } = await requete;
 
@@ -82,13 +85,7 @@ export type ChampsMouvement = {
 export async function creerMouvement(
   champs: ChampsMouvement,
 ): Promise<{ mouvement: Mouvement } | { erreur: string }> {
-  const supabase = clientSupabase();
-
-  if (champs.quantite <= 0 && champs.type !== "ajustement") {
-    return { erreur: "La quantité doit être supérieure à 0." };
-  }
-
-  const { data, error } = await supabase
+  const { data, error } = await clientSupabase()
     .from(TABLE)
     .insert(champs)
     .select("*")
@@ -121,15 +118,18 @@ export async function validerInventaire(
 }
 
 /**
- * Supprime un ajustement. La base refuse la suppression des entrées et
- * sorties (historique) et toute suppression qui rendrait le stock négatif ;
- * ses messages d'erreur sont rédigés pour être affichés tels quels.
+ * Annule un mouvement via la fonction Postgres `annuler_mouvement` : crée
+ * l'ajustement inverse et lie les deux. La base refuse une double annulation
+ * ou une annulation qui rendrait le stock négatif ; ses messages sont rédigés
+ * pour être affichés tels quels.
  */
-export async function supprimerMouvement(
+export async function annulerMouvement(
   id: string,
+  motif: string,
 ): Promise<{ erreur?: string }> {
-  const supabase = clientSupabase();
-
-  const { error } = await supabase.from(TABLE).delete().eq("id", id);
+  const { error } = await clientSupabase().rpc("annuler_mouvement", {
+    p_id: id,
+    p_motif: motif,
+  });
   return error ? { erreur: error.message } : {};
 }

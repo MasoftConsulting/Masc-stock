@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Carte, Vide } from "@/components/ui";
-import { formaterDate, formaterNombre } from "@/lib/format";
+import { correspond, formaterDate, formaterNombre, normaliser } from "@/lib/format";
 import { parametresPeriode, type Periode } from "@/lib/periode";
 import type { ClientAvecResume } from "@/lib/types-stock";
 
@@ -18,15 +18,10 @@ export function ListeClients({
   const [livresSeulement, setLivresSeulement] = useState(true);
 
   const filtres = useMemo(() => {
-    const terme = recherche.trim().toLowerCase();
+    const terme = normaliser(recherche);
     return clients
       .filter((c) => !livresSeulement || c.nb_livraisons > 0)
-      .filter(
-        (c) =>
-          !terme ||
-          c.nom.toLowerCase().includes(terme) ||
-          (c.contact ?? "").toLowerCase().includes(terme),
-      )
+      .filter((c) => correspond(terme, c.nom, c.contact, c.telephone))
       .sort((a, b) => b.unites - a.unites || a.nom.localeCompare(b.nom, "fr"));
   }, [clients, recherche, livresSeulement]);
 
@@ -38,6 +33,7 @@ export function ListeClients({
         <label className="block">
           <span className="etiquette">Rechercher</span>
           <input
+            type="search"
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             className="champ"
@@ -56,7 +52,7 @@ export function ListeClients({
         </label>
       </Carte>
 
-      <p className="px-1 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+      <p className="px-1 text-[0.8rem] font-semibold uppercase tracking-[0.16em] text-ink-faint">
         {filtres.length} client{filtres.length > 1 ? "s" : ""} · {periode.libelle}
       </p>
 
@@ -81,7 +77,7 @@ export function ListeClients({
                     <p className="font-display text-[1.1rem] font-semibold tracking-[-0.02em]">
                       {c.nom}
                     </p>
-                    <p className="mt-1 text-[0.75rem] text-ink-faint">
+                    <p className="mt-1 text-[0.82rem] text-ink-faint">
                       {[c.contact, c.telephone].filter(Boolean).join(" · ") || "—"}
                     </p>
                   </div>
@@ -92,19 +88,19 @@ export function ListeClients({
                         <p className="font-display text-[1.4rem] leading-none font-semibold">
                           {formaterNombre(c.unites)}
                         </p>
-                        <p className="mt-1 text-[0.66rem] text-ink-faint">
+                        <p className="mt-1 text-[0.82rem] text-ink-faint">
                           unités · {c.nb_produits} réf.
                         </p>
                       </div>
                       <div className="hidden sm:block">
                         <p className="text-[0.82rem]">{formaterDate(c.derniere_livraison)}</p>
-                        <p className="mt-1 text-[0.66rem] text-ink-faint">
+                        <p className="mt-1 text-[0.82rem] text-ink-faint">
                           {c.nb_livraisons} livraison{c.nb_livraisons > 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <span className="text-[0.75rem] text-ink-faint">
+                    <span className="text-[0.82rem] text-ink-faint">
                       Aucune livraison
                     </span>
                   )}

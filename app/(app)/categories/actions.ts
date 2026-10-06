@@ -25,7 +25,7 @@ export const creerCategorieAction = actionFormulaire(
     if ("erreur" in resultat) return { erreur: resultat.erreur };
 
     revalidatePath("/categories");
-    return { token: resultat.categorie.id };
+    return { token: resultat.categorie.id, message: `Catégorie « ${d.nom} » créée.` };
   },
 );
 
@@ -36,7 +36,7 @@ export const modifierCategorieAction = actionFormulaire(
     if (resultat.erreur) return { erreur: resultat.erreur };
 
     revalidatePath("/categories");
-    return { token: `${id}-${Date.now()}` };
+    return { token: `${id}-${Date.now()}`, message: "Catégorie enregistrée." };
   },
 );
 

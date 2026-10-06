@@ -22,7 +22,7 @@ export function EnTetePage({
     <header className="pt-8 md:pt-14">
       {avant}
       <span
-        className={`inline-flex items-center gap-2 rounded-full bg-ink/5 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-ink-soft ${
+        className={`inline-flex items-center gap-2 rounded-full bg-ink/5 px-3 py-1 text-[0.75rem] font-medium uppercase tracking-[0.2em] text-ink-soft ${
           avant ? "mt-6" : ""
         }`}
       >
@@ -81,7 +81,7 @@ export function TitreSection({
         <h2 className="font-display text-[1.15rem] font-semibold tracking-[-0.03em]">
           {titre}
         </h2>
-        {detail && <p className="mt-1 text-[0.76rem] text-ink-faint">{detail}</p>}
+        {detail && <p className="mt-1 text-[0.82rem] text-ink-faint">{detail}</p>}
       </div>
       {action}
     </header>
@@ -116,9 +116,38 @@ export function Indicateur({
         >
           {valeur}
         </p>
-        {detail && <p className="mt-2 text-[0.72rem] text-ink-faint">{detail}</p>}
+        {detail && <p className="mt-2 text-[0.8rem] text-ink-faint">{detail}</p>}
       </div>
     </div>
+  );
+}
+
+/** Bandeau de résultat sous l'en-tête de page (après une redirection). */
+export function Bandeau({
+  ton,
+  children,
+}: {
+  ton: "succes" | "erreur";
+  children: ReactNode;
+}) {
+  return (
+    <p
+      role={ton === "erreur" ? "alert" : "status"}
+      className={`mt-8 rounded-2xl px-5 py-3.5 text-[0.9rem] ${
+        ton === "succes" ? "bg-jade/10 text-jade" : "bg-rouille/10 text-rouille"
+      }`}
+    >
+      {children}
+    </p>
+  );
+}
+
+/** Message d'erreur dans un formulaire. */
+export function MessageErreur({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="rounded-2xl bg-rouille/10 px-4 py-3 text-[0.88rem] text-rouille">
+      {children}
+    </p>
   );
 }
 

@@ -1,4 +1,3 @@
-import { Coquille } from "@/components/coquille";
 import { Reveler } from "@/components/reveler";
 import { EnTetePage } from "@/components/ui";
 import { SelecteurPeriode } from "@/components/selecteur-periode";
@@ -13,7 +12,7 @@ export default async function PageClients({ searchParams }: PageProps<"/clients"
   const clients = await listerClientsAvecResume(periode);
 
   return (
-    <Coquille>
+    <>
       <Reveler>
         <EnTetePage rubrique="Référentiel" titre="Clients">
           Consommables livrés à chaque client. Les clients sont gérés dans
@@ -32,6 +31,6 @@ export default async function PageClients({ searchParams }: PageProps<"/clients"
           <ListeClients clients={clients} periode={periode} />
         </div>
       </Reveler>
-    </Coquille>
+    </>
   );
 }

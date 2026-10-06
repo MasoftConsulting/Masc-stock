@@ -4,11 +4,19 @@
    Design system MASC Stock — reprend les tokens de MASC Fiche
    =========================================================================== */
 
+@theme inline {
+  /* Polices chargées par next/font (app/layout.tsx) */
+  --font-sans: var(--font-texte), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-titres), var(--font-texte), system-ui, sans-serif;
+}
+
 @theme {
-  /* Palette neutre */
+  /* Palette neutre.
+     ink-faint : #6b6b6b → contraste 5,3:1 sur blanc (AA). L'ancien #8a8a8a
+     (3,5:1) était illisible pour les dates, seuils et notes. */
   --color-ink: #1a1a1a;
   --color-ink-soft: #4a4a4a;
-  --color-ink-faint: #8a8a8a;
+  --color-ink-faint: #6b6b6b;
   --color-hairline: #e8e6e2;
   --color-surface: #ffffff;
 
@@ -22,6 +30,10 @@
   --color-amber: #c47a1e;
   --color-rouille: #b03a2e;
 
+  /* Ombre des cartes et éléments flottants */
+  --shadow-flottant:
+    0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -12px rgba(30, 58, 95, 0.18);
+
   /* Animation signature */
   --ease-mass: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -34,8 +46,60 @@ body {
 body {
   background: linear-gradient(180deg, #f7f6f3 0%, #ebe8e2 100%);
   color: var(--color-ink);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   min-height: 100vh;
+}
+
+/* Chiffres alignés dans les tableaux et indicateurs */
+.font-display,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus clavier visible partout */
+:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+}
+
+/* ===========================================================================
+   Animations (désactivées si l'utilisateur réduit les animations)
+   =========================================================================== */
+
+@keyframes apparaitre {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+.reveler {
+  animation: apparaitre 0.7s var(--ease-mass) both;
+}
+
+.toast {
+  animation: apparaitre 0.4s var(--ease-mass) both;
+}
+
+@keyframes respirer {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Bloc de chargement (loading.tsx) */
+.squelette {
+  border-radius: 1.6rem;
+  background: rgba(255, 255, 255, 0.55);
+  animation: respirer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveler,
+  .toast,
+  .squelette {
+    animation: none;
+  }
 }
 
 /* ===========================================================================
@@ -50,7 +114,7 @@ body {
     border: 1px solid var(--color-hairline);
     background: var(--color-surface);
     padding: 0.7rem 1rem;
-    font-size: 0.95rem;
+    font-size: 1rem; /* ≥ 16 px : évite le zoom automatique sur iPhone */
     color: var(--color-ink);
     outline: none;
     transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
@@ -76,7 +140,7 @@ body {
   /* Étiquette au-dessus d'un champ */
   .etiquette {
     display: block;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: var(--color-ink-soft);
     text-transform: uppercase;

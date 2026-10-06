@@ -17,7 +17,12 @@ import { lireSession } from "./session";
  * `token` change à chaque succès : le formulaire de création s'en sert comme
  * `key` pour se réinitialiser, celui d'édition pour se fermer.
  */
-export type EtatAction = { erreur?: string; token?: string };
+export type EtatAction = {
+  erreur?: string;
+  token?: string;
+  /** Confirmation affichée en toast après un succès. */
+  message?: string;
+};
 
 function premiereErreur(erreur: z.ZodError): string {
   return erreur.issues[0]?.message ?? "Formulaire invalide.";

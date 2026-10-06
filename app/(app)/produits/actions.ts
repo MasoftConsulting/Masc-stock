@@ -18,6 +18,7 @@ const champsProduit = {
   nom: champ.texte("Le nom est obligatoire."),
   categorie_id: champ.idOptionnel,
   description: champ.texteOptionnel,
+  compatibilite: champ.texteOptionnel,
   seuil_alerte: champ.entierPositifOuNul("Le seuil d'alerte doit être un entier positif."),
 };
 
@@ -28,7 +29,7 @@ export const creerProduitAction = actionFormulaire(
     if ("erreur" in resultat) return { erreur: resultat.erreur };
 
     revalidatePath("/produits");
-    return { token: resultat.produit.id };
+    return { token: resultat.produit.id, message: `Produit ${d.reference} créé.` };
   },
 );
 
@@ -39,7 +40,7 @@ export const modifierProduitAction = actionFormulaire(
     if (resultat.erreur) return { erreur: resultat.erreur };
 
     revalidatePath("/produits");
-    return { token: `${id}-${Date.now()}` };
+    return { token: `${id}-${Date.now()}`, message: "Produit enregistré." };
   },
 );
 
