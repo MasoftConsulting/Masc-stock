@@ -151,6 +151,74 @@ export function MessageErreur({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Tableau compact dans une carte. Défilement horizontal sur petit écran ;
+ * une colonne marquée `masquerMobile` disparaît sous 640 px.
+ */
+export function Tableau({
+  colonnes,
+  children,
+}: {
+  colonnes: { libelle: string; droite?: boolean; masquerMobile?: boolean }[];
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-[1.6rem] bg-white/45 p-1.5 ring-1 ring-white/60 shadow-flottant">
+      <div className="overflow-x-auto rounded-[1.225rem] bg-surface">
+        <table className="w-full text-left text-[0.9rem]">
+          <thead>
+            <tr className="border-b border-hairline text-[0.75rem] uppercase tracking-[0.08em] text-ink-faint">
+              {colonnes.map((c, i) => (
+                <th
+                  key={i}
+                  scope="col"
+                  className={`px-4 py-3 font-medium whitespace-nowrap ${c.droite ? "text-right" : ""} ${
+                    c.masquerMobile ? "hidden sm:table-cell" : ""
+                  }`}
+                >
+                  {c.libelle}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-hairline">{children}</tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** Classes d'une cellule de `Tableau`. */
+export const CELLULE = "px-4 py-3 align-middle";
+
+/** Tuile compacte pour la vue grille. */
+export function Tuile({
+  children,
+  attenue = false,
+  large = false,
+}: {
+  children: ReactNode;
+  /** Élément désactivé ou annulé. */
+  attenue?: boolean;
+  /** Occupe toute la largeur (formulaire d'édition ouvert). */
+  large?: boolean;
+}) {
+  return (
+    <article
+      className={`flex flex-col rounded-[1.4rem] p-1 ring-1 transition-all duration-500 ease-mass ${
+        attenue ? "bg-ink/3 ring-hairline" : "bg-white/45 ring-white/60 hover:bg-white/75"
+      } ${large ? "sm:col-span-2 lg:col-span-3" : ""}`}
+    >
+      <div className="flex flex-1 flex-col rounded-[1.1rem] bg-surface p-4">{children}</div>
+    </article>
+  );
+}
+
+/** Conteneur de la vue grille. */
+export function Grille({ children }: { children: ReactNode }) {
+  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>;
+}
+
 /** Message vide à l'intérieur d'une carte. */
 export function Vide({ children }: { children: ReactNode }) {
   return (

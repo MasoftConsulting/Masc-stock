@@ -17,7 +17,8 @@ import {
   type TypeMouvement,
 } from "@/lib/types-stock";
 import { correspond, formaterDate, normaliser } from "@/lib/format";
-import { Carte, MessageErreur, Vide } from "@/components/ui";
+import { CELLULE, Carte, Grille, MessageErreur, Tableau, Tuile, Vide } from "@/components/ui";
+import { BasculeVue, useVue } from "@/components/vue";
 import { useSuccesAction } from "@/components/toasts";
 
 type Saisie = "entree" | "sortie";
@@ -322,6 +323,7 @@ function FormulaireMouvement({
 /* ------------------------------------------------------------- liste */
 
 function FiltresListe({ mouvements }: { mouvements: MouvementAvecDetails[] }) {
+  const [vue, setVue] = useVue("mouvements");
   const [typeFiltre, setTypeFiltre] = useState<"" | TypeMouvement>("");
   const [recherche, setRecherche] = useState("");
 
@@ -371,103 +373,182 @@ function FiltresListe({ mouvements }: { mouvements: MouvementAvecDetails[] }) {
             <option value="ajustement">Ajustements et annulations</option>
           </select>
         </label>
-        {aFiltre && (
-          <div className="flex items-center justify-between gap-2 sm:col-span-2">
-            <span className="text-[0.85rem] text-ink-soft">
-              {filtres.length} sur {mouvements.length}
-            </span>
+      </Carte>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="px-1 text-[0.85rem] text-ink-soft">
+          {aFiltre ? `${filtres.length} sur ${mouvements.length}` : `${mouvements.length} derniers mouvements`}
+          {aFiltre && (
             <button
               type="button"
               onClick={() => {
                 setRecherche("");
                 setTypeFiltre("");
               }}
-              className="text-[0.85rem] text-ink-soft underline underline-offset-4 hover:text-ink"
+              className="ml-3 underline underline-offset-4 hover:text-ink"
             >
               Effacer les filtres
             </button>
-          </div>
-        )}
-      </Carte>
+          )}
+        </p>
+        <BasculeVue vue={vue} onChange={setVue} />
+      </div>
 
-      <section className="space-y-2">
-        {filtres.length === 0 ? (
-          <Carte>
-            <Vide>Aucun mouvement ne correspond. Élargissez la recherche.</Vide>
-          </Carte>
-        ) : (
-          filtres.map((m) => <LigneMouvement key={m.id} mouvement={m} />)
-        )}
-      </section>
+      {filtres.length === 0 ? (
+        <Carte>
+          <Vide>Aucun mouvement ne correspond. Élargissez la recherche.</Vide>
+        </Carte>
+      ) : vue === "liste" ? (
+        <Tableau
+          colonnes={[
+            { libelle: "Date" },
+            { libelle: "Type" },
+            { libelle: "Produit" },
+            { libelle: "Qté", droite: true },
+            { libelle: "Client / fournisseur", masquerMobile: true },
+            { libelle: "Note", masquerMobile: true },
+            { libelle: "", droite: true },
+          ]}
+        >
+          {filtres.map((m) => (
+            <LigneMouvement key={m.id} mouvement={m} />
+          ))}
+        </Tableau>
+      ) : (
+        <Grille>
+          {filtres.map((m) => (
+            <TuileMouvement key={m.id} mouvement={m} />
+          ))}
+        </Grille>
+      )}
     </>
   );
 }
 
+function etatMouvement(m: MouvementAvecDetails) {
+  const annule = m.annule_par !== null;
+  return { nature: natureMouvement(m), annule, annulable: !annule && m.annulation_de === null };
+}
+
+function BadgeAnnule() {
+  return (
+    <span className="ml-2 rounded-full bg-rouille/10 px-2 py-0.5 text-[0.75rem] font-medium text-rouille">
+      Annulé
+    </span>
+  );
+}
+
+function BoutonAnnuler({ onClick, ouvert }: { onClick: () => void; ouvert: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={ouvert}
+      className="rounded-full px-3 py-1.5 text-[0.85rem] text-ink-soft transition-all duration-500 ease-mass hover:bg-rouille/10 hover:text-rouille"
+    >
+      {ouvert ? "Fermer" : "Annuler…"}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------ vue liste */
+
 function LigneMouvement({ mouvement: m }: { mouvement: MouvementAvecDetails }) {
   const [annulation, setAnnulation] = useState(false);
-  const nature = natureMouvement(m);
-  const annule = m.annule_par !== null;
-  const annulable = !annule && m.annulation_de === null;
+  const { nature, annule, annulable } = etatMouvement(m);
 
   return (
-    <article
-      className={`rounded-[1.6rem] p-1.5 ring-1 transition-all duration-500 ease-mass ${
-        annule ? "bg-ink/3 ring-hairline" : "bg-white/45 ring-white/60 hover:bg-white/70"
-      }`}
-    >
-      <div className="rounded-[1.225rem] bg-surface px-5 py-4 sm:px-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <span
-            aria-hidden="true"
-            className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-[1.05rem] ${TONS[nature.ton].pastille}`}
-          >
-            {nature.symbole}
+    <>
+      <tr className={annule ? "bg-ink/2 text-ink-faint" : "hover:bg-ink/2"}>
+        <td className={`${CELLULE} whitespace-nowrap text-ink-soft`}>{formaterDate(m.date_mouvement)}</td>
+        <td className={`${CELLULE} whitespace-nowrap`}>
+          <span className={`inline-flex items-center gap-1.5 ${TONS[nature.ton].texte}`}>
+            <span aria-hidden="true">{nature.symbole}</span>
+            <span className="text-[0.85rem] font-medium text-ink-soft">{nature.libelle}</span>
           </span>
+        </td>
+        <td className={CELLULE}>
+          <span className="font-mono text-[0.85rem] text-brand">{m.produit_reference}</span>
+          <span className="block text-[0.85rem]">
+            {m.produit_nom}
+            {annule && <BadgeAnnule />}
+          </span>
+        </td>
+        <td
+          className={`${CELLULE} text-right font-display text-[1.05rem] font-semibold whitespace-nowrap ${
+            annule ? "line-through" : TONS[nature.ton].texte
+          }`}
+        >
+          {formaterDelta(nature.delta)}
+        </td>
+        <td className={`${CELLULE} hidden text-ink-soft sm:table-cell`}>{m.client_nom ?? m.fournisseur ?? "—"}</td>
+        <td
+          className={`${CELLULE} hidden max-w-56 truncate text-[0.85rem] text-ink-faint sm:table-cell`}
+          title={m.note ?? undefined}
+        >
+          {m.note ?? "—"}
+        </td>
+        <td className={`${CELLULE} text-right`}>
+          {annulable && <BoutonAnnuler ouvert={annulation} onClick={() => setAnnulation((v) => !v)} />}
+        </td>
+      </tr>
+      {annulation && (
+        <tr>
+          <td colSpan={7} className="bg-ink/2 px-4 py-5 sm:px-6">
+            <FormulaireAnnulation mouvement={m} onFermer={() => setAnnulation(false)} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
 
-          <div className={`min-w-0 flex-1 ${annule ? "opacity-60" : ""}`}>
-            <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-              <span
-                className={`font-display text-[1.2rem] font-semibold tracking-[-0.02em] ${
-                  annule ? "line-through" : TONS[nature.ton].texte
-                }`}
-              >
-                {formaterDelta(nature.delta)}
-              </span>
-              <span className="text-[0.8rem] font-medium uppercase tracking-[0.08em] text-ink-soft">
-                {nature.libelle}
-              </span>
-              <span className="font-mono text-[0.8rem] tracking-[0.04em] text-brand">
-                {m.produit_reference}
-              </span>
-              {annule && (
-                <span className="rounded-full bg-rouille/10 px-2 py-0.5 text-[0.82rem] font-medium text-rouille">
-                  Annulé
-                </span>
-              )}
-            </div>
-            <p className="mt-1 truncate text-[0.9rem] text-ink">{m.produit_nom}</p>
-            <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[0.82rem] text-ink-soft">
-              <span>{formaterDate(m.date_mouvement)}</span>
-              {m.client_nom && <span>· {m.client_nom}</span>}
-              {m.fournisseur && <span>· {m.fournisseur}</span>}
-              {m.note && <span>· {m.note}</span>}
-            </p>
-          </div>
+/* ------------------------------------------------------------ vue grille */
 
-          {annulable && !annulation && (
-            <button
-              type="button"
-              onClick={() => setAnnulation(true)}
-              className="shrink-0 rounded-full px-3.5 py-2 text-[0.85rem] text-ink-soft transition-all duration-500 ease-mass hover:bg-rouille/10 hover:text-rouille"
-            >
-              Annuler…
-            </button>
-          )}
+function TuileMouvement({ mouvement: m }: { mouvement: MouvementAvecDetails }) {
+  const [annulation, setAnnulation] = useState(false);
+  const { nature, annule, annulable } = etatMouvement(m);
+
+  return (
+    <Tuile attenue={annule} large={annulation}>
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${TONS[nature.ton].pastille}`}
+        >
+          {nature.symbole}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.8rem] font-medium uppercase tracking-[0.08em] text-ink-soft">
+            {nature.libelle} · {formaterDate(m.date_mouvement)}
+          </p>
+          <p className="mt-0.5 truncate">
+            <span className="font-mono text-[0.85rem] text-brand">{m.produit_reference}</span> {m.produit_nom}
+          </p>
+          <p className="truncate text-[0.82rem] text-ink-faint">
+            {[m.client_nom, m.fournisseur, m.note].filter(Boolean).join(" · ") || "—"}
+          </p>
         </div>
-
-        {annulation && <FormulaireAnnulation mouvement={m} onFermer={() => setAnnulation(false)} />}
+        <span
+          className={`shrink-0 font-display text-[1.3rem] font-semibold ${
+            annule ? "line-through opacity-60" : TONS[nature.ton].texte
+          }`}
+        >
+          {formaterDelta(nature.delta)}
+        </span>
       </div>
-    </article>
+      {(annule || annulable) && (
+        <div className="mt-auto flex items-center justify-between pt-2">
+          {annule ? <BadgeAnnule /> : <span />}
+          {annulable && <BoutonAnnuler ouvert={annulation} onClick={() => setAnnulation((v) => !v)} />}
+        </div>
+      )}
+      {annulation && (
+        <div className="mt-3 border-t border-hairline pt-4">
+          <FormulaireAnnulation mouvement={m} onFermer={() => setAnnulation(false)} />
+        </div>
+      )}
+    </Tuile>
   );
 }
 
@@ -482,11 +563,12 @@ function FormulaireAnnulation({
   useSuccesAction(etat, onFermer);
 
   return (
-    <form action={action} className="mt-4 space-y-3 border-t border-hairline pt-4">
+    <form action={action} className="space-y-3">
       <input type="hidden" name="id" value={mouvement.id} />
       <p className="text-[0.88rem] text-ink-soft">
-        Un ajustement inverse sera créé et ce mouvement apparaîtra barré. Le
-        stock est rétabli ; l&apos;historique garde la trace de l&apos;erreur.
+        Annuler <span className="font-mono text-brand">{mouvement.produit_reference}</span> du{" "}
+        {formaterDate(mouvement.date_mouvement)} : un ajustement inverse sera créé et ce mouvement
+        apparaîtra barré. Le stock est rétabli ; l&apos;historique garde la trace de l&apos;erreur.
       </p>
       <label className="block">
         <span className="etiquette">Motif *</span>
