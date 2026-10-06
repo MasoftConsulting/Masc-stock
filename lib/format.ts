@@ -21,3 +21,8 @@ export function formaterDate(valeur: string | null | undefined): string {
     year: "numeric",
   });
 }
+
+/** Nombre entier en français (espace insécable pour les milliers). */
+export function formaterNombre(valeur: number): string {
+  return valeur.toLocaleString("fr-FR");
+}

@@ -100,3 +100,25 @@ export type Client = {
   created_at: string;
   updated_at: string;
 };
+
+/** Livraisons reçues par un client sur une période. */
+export type ResumeLivraisons = {
+  nb_livraisons: number;
+  unites: number;
+  nb_produits: number;
+  derniere_livraison: string | null;
+};
+
+export type ClientAvecResume = Client & ResumeLivraisons;
+
+/** Une ligne de la fiche client : un consommable livré. */
+export type LigneFicheClient = {
+  produit_id: string;
+  reference: string;
+  nom: string;
+  categorie_nom: string | null;
+  unites: number;
+  nb_livraisons: number;
+  premiere_livraison: string;
+  derniere_livraison: string;
+};
