@@ -1,0 +1,127 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { Logo } from "./marque";
+
+const LIENS = [
+  { href: "/", label: "Tableau de bord" },
+  { href: "/produits", label: "Produits" },
+  { href: "/categories", label: "Catégories" },
+  { href: "/mouvements", label: "Mouvements" },
+  { href: "/clients", label: "Clients" },
+];
+
+export function Navigation({
+  deconnexion,
+}: {
+  deconnexion: () => Promise<void>;
+}) {
+  const chemin = usePathname();
+  const [ouvert, setOuvert] = useState(false);
+
+  const actif = (href: string) =>
+    href === "/" ? chemin === "/" : chemin.startsWith(href);
+
+  return (
+    <>
+      <header
+        className="sticky top-0 z-30 px-4 pt-5 pb-2"
+        style={{ paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}
+      >
+        <nav className="mx-auto flex w-full max-w-6xl items-center gap-3 rounded-full border border-white/60 bg-white/70 p-2 pl-3 shadow-flottant backdrop-blur-2xl">
+          <Link href="/" className="flex items-center gap-2.5 pr-2">
+            <Logo hauteur={34} />
+            <span className="hidden font-display text-[0.9rem] font-semibold tracking-[-0.02em] sm:block">
+              MASC Stock
+            </span>
+          </Link>
+
+          <div className="hidden items-center gap-1 md:flex">
+            {LIENS.map((lien) => (
+              <Link
+                key={lien.href}
+                href={lien.href}
+                className={`rounded-full px-4 py-2 text-[0.85rem] font-medium transition-all duration-500 ease-mass ${
+                  actif(lien.href)
+                    ? "bg-ink text-white"
+                    : "text-ink-soft hover:bg-ink/5 hover:text-ink"
+                }`}
+              >
+                {lien.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <form action={deconnexion} className="hidden md:block">
+              <button
+                type="submit"
+                className="rounded-full px-4 py-2 text-[0.8rem] font-medium text-ink-soft transition-all duration-500 ease-mass hover:bg-ink/5 hover:text-ink active:scale-[0.97]"
+              >
+                Quitter
+              </button>
+            </form>
+
+            <button
+              type="button"
+              onClick={() => setOuvert((v) => !v)}
+              aria-label={ouvert ? "Fermer le menu" : "Ouvrir le menu"}
+              aria-expanded={ouvert}
+              className="relative grid h-10 w-10 place-items-center rounded-full bg-ink/[0.04] transition-all duration-500 ease-mass hover:bg-ink/[0.08] active:scale-[0.95] md:hidden"
+            >
+              <span
+                className={`absolute h-[1.5px] w-4 rounded-full bg-ink transition-all duration-500 ease-mass ${
+                  ouvert ? "rotate-45" : "-translate-y-[3.5px]"
+                }`}
+              />
+              <span
+                className={`absolute h-[1.5px] w-4 rounded-full bg-ink transition-all duration-500 ease-mass ${
+                  ouvert ? "-rotate-45" : "translate-y-[3.5px]"
+                }`}
+              />
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      <div
+        className={`fixed inset-0 z-20 bg-white/85 backdrop-blur-3xl transition-all duration-700 ease-mass md:hidden ${
+          ouvert ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <div className="flex h-full flex-col justify-center px-8">
+          {LIENS.map((lien, index) => (
+            <Link
+              key={lien.href}
+              href={lien.href}
+              onClick={() => setOuvert(false)}
+              className={`border-b border-hairline py-6 font-display text-[2rem] font-semibold tracking-[-0.03em] transition-all duration-700 ease-mass ${
+                ouvert ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
+              }`}
+              style={{ transitionDelay: `${ouvert ? 90 + index * 60 : 0}ms` }}
+            >
+              {lien.label}
+            </Link>
+          ))}
+
+          <form
+            action={deconnexion}
+            className={`mt-10 transition-all duration-700 ease-mass ${
+              ouvert ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
+            }`}
+            style={{ transitionDelay: `${ouvert ? 240 : 0}ms` }}
+          >
+            <button
+              type="submit"
+              className="rounded-full bg-ink px-6 py-3 text-[0.9rem] font-medium text-white active:scale-[0.98]"
+            >
+              Se déconnecter
+            </button>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+}
