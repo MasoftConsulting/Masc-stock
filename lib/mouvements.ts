@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "./supabase";
+import { clientSupabase, echecLecture } from "./supabase";
 import type {
   Mouvement,
   MouvementAvecDetails,
@@ -30,12 +30,9 @@ export type FiltresMouvements = {
 export async function listerMouvements(
   filtres: FiltresMouvements = {},
 ): Promise<MouvementAvecDetails[]> {
-  const supabase = createAdminClient();
-  if (!supabase) return [];
-
   const limite = Math.min(filtres.limite ?? 200, 1000);
 
-  let requete = supabase
+  let requete = clientSupabase()
     .from(TABLE)
     .select(
       "*, produits (reference, nom), clients (nom)",
@@ -52,17 +49,14 @@ export async function listerMouvements(
 
   const { data, error } = await requete;
 
-  if (error) {
-    console.error("[mouvements] listerMouvements", error.message);
-    return [];
-  }
+  if (error) echecLecture("mouvements", error);
 
   type Ligne = Mouvement & {
     produits: { reference: string; nom: string } | null;
     clients: { nom: string } | null;
   };
 
-  return ((data ?? []) as Ligne[]).map((l) => {
+  return (data as Ligne[]).map((l) => {
     const { produits, clients, ...reste } = l;
     return {
       ...reste,
@@ -71,43 +65,6 @@ export async function listerMouvements(
       client_nom: clients?.nom ?? null,
     };
   });
-}
-
-/**
- * Compte des mouvements sur une période, par type.
- * Utilisé par le tableau de bord.
- */
-export async function compterMouvements(depuis?: string): Promise<{
-  total: number;
-  entrees: number;
-  sorties: number;
-  ajustements: number;
-}> {
-  const supabase = createAdminClient();
-  const vide = { total: 0, entrees: 0, sorties: 0, ajustements: 0 };
-  if (!supabase) return vide;
-
-  const base = () => {
-    let q = supabase
-      .from(TABLE)
-      .select("*", { count: "exact", head: true });
-    if (depuis) q = q.gte("date_mouvement", depuis);
-    return q;
-  };
-
-  const [total, entrees, sorties, ajustements] = await Promise.all([
-    base(),
-    base().eq("type", "entree"),
-    base().eq("type", "sortie"),
-    base().eq("type", "ajustement"),
-  ]);
-
-  return {
-    total: total.count ?? 0,
-    entrees: entrees.count ?? 0,
-    sorties: sorties.count ?? 0,
-    ajustements: ajustements.count ?? 0,
-  };
 }
 
 /* --------------------------------------------------------------- écriture */
@@ -125,8 +82,7 @@ export type ChampsMouvement = {
 export async function creerMouvement(
   champs: ChampsMouvement,
 ): Promise<{ mouvement: Mouvement } | { erreur: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   if (champs.quantite <= 0 && champs.type !== "ajustement") {
     return { erreur: "La quantité doit être supérieure à 0." };
@@ -153,8 +109,7 @@ export async function validerInventaire(
   comptes: { produit_id: string; compte: number }[],
   note: string | null,
 ): Promise<{ nombre: number } | { erreur: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   const { data, error } = await supabase.rpc("valider_inventaire", {
     p_comptes: comptes,
@@ -173,8 +128,7 @@ export async function validerInventaire(
 export async function supprimerMouvement(
   id: string,
 ): Promise<{ erreur?: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   const { error } = await supabase.from(TABLE).delete().eq("id", id);
   return error ? { erreur: error.message } : {};

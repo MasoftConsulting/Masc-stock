@@ -1,38 +1,18 @@
 import "server-only";
-import { createAdminClient } from "./supabase";
+import { clientSupabase, echecLecture } from "./supabase";
 import type { Client } from "./types-stock";
 
 export type { Client };
 
+/** Table `clients` de masc-fiche (base partagée) : lecture seule ici. */
 const TABLE = "clients";
 
-/* ---------------------------------------------------------------- lecture */
-
 export async function listerClients(): Promise<Client[]> {
-  const supabase = createAdminClient();
-  if (!supabase) return [];
-
-  const { data, error } = await supabase.from(TABLE).select("*").order("nom");
-  if (error) {
-    console.error("[clients] listerClients", error.message);
-    return [];
-  }
-  return (data ?? []) as Client[];
-}
-
-export async function lireClient(id: string): Promise<Client | null> {
-  const supabase = createAdminClient();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
+  const { data, error } = await clientSupabase()
     .from(TABLE)
     .select("*")
-    .eq("id", id)
-    .maybeSingle();
+    .order("nom");
 
-  if (error) {
-    console.error("[clients] lireClient", error.message);
-    return null;
-  }
-  return (data as Client) ?? null;
+  if (error) echecLecture("clients", error);
+  return data as Client[];
 }

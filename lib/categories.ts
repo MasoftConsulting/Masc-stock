@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "./supabase";
+import { clientSupabase, echecLecture } from "./supabase";
 import type { Categorie, CategorieAvecStats } from "./types-stock";
 
 export type { Categorie, CategorieAvecStats };
@@ -9,28 +9,25 @@ const TABLE = "categories";
 /* ---------------------------------------------------------------- lecture */
 
 export async function listerCategories(): Promise<Categorie[]> {
-  const supabase = createAdminClient();
-  if (!supabase) return [];
+  const { data, error } = await clientSupabase()
+    .from(TABLE)
+    .select("*")
+    .order("nom");
 
-  const { data, error } = await supabase.from(TABLE).select("*").order("nom");
-  if (error) {
-    console.error("[categories] listerCategories", error.message);
-    return [];
-  }
-  return (data ?? []) as Categorie[];
+  if (error) echecLecture("categories", error);
+  return data as Categorie[];
 }
 
 export async function listerCategoriesAvecStats(): Promise<CategorieAvecStats[]> {
-  const supabase = createAdminClient();
-  if (!supabase) return [];
-
   const [categories, produits] = await Promise.all([
     listerCategories(),
-    supabase.from("produits").select("categorie_id").limit(10_000),
+    clientSupabase().from("produits").select("categorie_id").limit(10_000),
   ]);
 
+  if (produits.error) echecLecture("categories/produits", produits.error);
+
   const compteur = new Map<string, number>();
-  for (const p of (produits.data ?? []) as { categorie_id: string | null }[]) {
+  for (const p of produits.data as { categorie_id: string | null }[]) {
     if (p.categorie_id) {
       compteur.set(p.categorie_id, (compteur.get(p.categorie_id) ?? 0) + 1);
     }
@@ -42,31 +39,13 @@ export async function listerCategoriesAvecStats(): Promise<CategorieAvecStats[]>
   }));
 }
 
-export async function lireCategorie(id: string): Promise<Categorie | null> {
-  const supabase = createAdminClient();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[categories] lireCategorie", error.message);
-    return null;
-  }
-  return (data as Categorie) ?? null;
-}
-
 /* --------------------------------------------------------------- écriture */
 
 export async function creerCategorie(champs: {
   nom: string;
   description?: string | null;
 }): Promise<{ categorie: Categorie } | { erreur: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   const { data, error } = await supabase
     .from(TABLE)
@@ -90,8 +69,7 @@ export async function modifierCategorie(
   id: string,
   champs: { nom?: string; description?: string | null; actif?: boolean },
 ): Promise<{ erreur?: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   const { error } = await supabase.from(TABLE).update(champs).eq("id", id);
   if (error) {
@@ -104,8 +82,7 @@ export async function modifierCategorie(
 }
 
 export async function supprimerCategorie(id: string): Promise<{ erreur?: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   // La clé étrangère produits → categories est en ON DELETE RESTRICT :
   // c'est la base qui refuse, sans fenêtre entre vérification et suppression.

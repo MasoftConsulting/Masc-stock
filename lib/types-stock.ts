@@ -81,12 +81,6 @@ export type MouvementAvecDetails = Mouvement & {
   client_nom: string | null;
 };
 
-export const LABELS_TYPE: Record<TypeMouvement, string> = {
-  entree: "Entrée",
-  sortie: "Sortie",
-  ajustement: "Ajustement",
-};
-
 /** Signe visuel d'un mouvement (↑ entrée, ↓ sortie, ⚙ ajustement). */
 export function symboleMouvement(type: TypeMouvement): string {
   if (type === "entree") return "↑";

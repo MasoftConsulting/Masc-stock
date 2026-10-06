@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import {
-  creerMouvementAction,
+  creerEntreeAction,
+  creerSortieAction,
   supprimerMouvementAction,
   type EtatMouvement,
 } from "./actions";
@@ -166,11 +167,8 @@ function FormulaireMouvement({
   clients: Client[];
   onFermer: () => void;
 }) {
-  // On lie l'action à son type : `creerMouvementAction` reçoit le type en
-  // premier argument, `useActionState` passe (etat, formData).
-  const actionLiee = creerMouvementAction.bind(null, type);
   const [etat, action, enCours] = useActionState<EtatMouvement, FormData>(
-    actionLiee,
+    type === "entree" ? creerEntreeAction : creerSortieAction,
     {},
   );
 

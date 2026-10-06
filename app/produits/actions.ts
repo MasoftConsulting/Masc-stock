@@ -2,109 +2,67 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { lireSession } from "@/lib/session";
+import { z } from "zod";
+import { actionFormulaire, actionSimple, type EtatAction } from "@/lib/action";
+import { champ } from "@/lib/champs";
 import {
   creerProduit,
   modifierProduit,
   supprimerProduit,
-  type ChampsProduit,
 } from "@/lib/produits";
 
-export type EtatProduit = { erreur?: string; token?: string };
+export type EtatProduit = EtatAction;
 
-function texte(formData: FormData, cle: string): string | null {
-  const v = String(formData.get(cle) ?? "").trim();
-  return v.length > 0 ? v : null;
-}
+const champsProduit = {
+  reference: champ.texte("La référence est obligatoire."),
+  nom: champ.texte("Le nom est obligatoire."),
+  categorie_id: champ.idOptionnel,
+  description: champ.texteOptionnel,
+  seuil_alerte: champ.entierPositifOuNul("Le seuil d'alerte doit être un entier positif."),
+};
 
-function nombre(formData: FormData, cle: string): number {
-  const v = Number(formData.get(cle) ?? 0);
-  return Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0;
-}
+export const creerProduitAction = actionFormulaire(
+  z.object(champsProduit),
+  async (d) => {
+    const resultat = await creerProduit(d);
+    if ("erreur" in resultat) return { erreur: resultat.erreur };
 
-/**
- * Extrait et valide les champs communs aux actions de création et
- * d'édition. Retourne `{ erreur }` si la validation échoue.
- */
-function lireChamps(
-  formData: FormData,
-): ChampsProduit | { erreur: string } {
-  const reference = texte(formData, "reference");
-  if (!reference) return { erreur: "La référence est obligatoire." };
+    revalidatePath("/produits");
+    return { token: resultat.produit.id };
+  },
+);
 
-  const nom = texte(formData, "nom");
-  if (!nom) return { erreur: "Le nom est obligatoire." };
+export const modifierProduitAction = actionFormulaire(
+  z.object({ id: champ.id, ...champsProduit }),
+  async ({ id, ...champs }) => {
+    const resultat = await modifierProduit(id, champs);
+    if (resultat.erreur) return { erreur: resultat.erreur };
 
-  return {
-    reference,
-    nom,
-    categorie_id: texte(formData, "categorie_id"),
-    description: texte(formData, "description"),
-    seuil_alerte: nombre(formData, "seuil_alerte"),
-  };
-}
+    revalidatePath("/produits");
+    return { token: `${id}-${Date.now()}` };
+  },
+);
 
-export async function creerProduitAction(
-  _etat: EtatProduit,
-  formData: FormData,
-): Promise<EtatProduit> {
-  const session = await lireSession();
-  if (!session) return { erreur: "Non autorisé." };
+export const basculerActifProduitAction = actionSimple(
+  z.object({ id: champ.id, actif: champ.booleen }),
+  async ({ id, actif }) => {
+    const resultat = await modifierProduit(id, { actif });
+    if (resultat.erreur) {
+      redirect(`/produits?erreur=${encodeURIComponent(resultat.erreur)}`);
+    }
+    revalidatePath("/produits");
+  },
+);
 
-  const champs = lireChamps(formData);
-  if ("erreur" in champs) return { erreur: champs.erreur };
+export const supprimerProduitAction = actionSimple(
+  z.object({ id: champ.id }),
+  async ({ id }) => {
+    const resultat = await supprimerProduit(id);
+    if (resultat.erreur) {
+      redirect(`/produits?erreur=${encodeURIComponent(resultat.erreur)}`);
+    }
 
-  const resultat = await creerProduit(champs);
-  if ("erreur" in resultat) return { erreur: resultat.erreur };
-
-  revalidatePath("/produits");
-  return { token: resultat.produit.id };
-}
-
-export async function modifierProduitAction(
-  _etat: EtatProduit,
-  formData: FormData,
-): Promise<EtatProduit> {
-  const session = await lireSession();
-  if (!session) return { erreur: "Non autorisé." };
-
-  const id = String(formData.get("id") ?? "");
-  if (!id) return { erreur: "Produit introuvable." };
-
-  const champs = lireChamps(formData);
-  if ("erreur" in champs) return { erreur: champs.erreur };
-
-  const resultat = await modifierProduit(id, champs);
-  if (resultat.erreur) return { erreur: resultat.erreur };
-
-  revalidatePath("/produits");
-  return { token: `${id}-${Date.now()}` };
-}
-
-export async function basculerActifProduitAction(formData: FormData) {
-  const session = await lireSession();
-  if (!session) redirect("/connexion");
-
-  const id = String(formData.get("id") ?? "");
-  const actif = formData.get("actif") === "1";
-  if (!id) return;
-
-  await modifierProduit(id, { actif });
-  revalidatePath("/produits");
-}
-
-export async function supprimerProduitAction(formData: FormData) {
-  const session = await lireSession();
-  if (!session) redirect("/connexion");
-
-  const id = String(formData.get("id") ?? "");
-  if (!id) redirect("/produits");
-
-  const resultat = await supprimerProduit(id);
-  if (resultat.erreur) {
-    redirect(`/produits?erreur=${encodeURIComponent(resultat.erreur)}`);
-  }
-
-  revalidatePath("/produits");
-  redirect("/produits?supprime=1");
-}
+    revalidatePath("/produits");
+    redirect("/produits?supprime=1");
+  },
+);

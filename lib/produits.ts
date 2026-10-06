@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "./supabase";
+import { clientSupabase, echecLecture } from "./supabase";
 import type {
   Produit,
   ProduitAvecStock,
@@ -17,56 +17,30 @@ const TABLE = "produits";
 /* ---------------------------------------------------------------- lecture */
 
 export async function listerProduitsComplet(): Promise<ProduitAvecStock[]> {
-  const supabase = createAdminClient();
-  if (!supabase) return [];
+  const supabase = clientSupabase();
 
   const [produits, stocks] = await Promise.all([
-    supabase.from("produits").select("*").order("nom"),
+    supabase.from(TABLE).select("*").order("nom"),
     supabase.from("stock_actuel").select("id, quantite, categorie_nom"),
   ]);
 
-  if (produits.error) {
-    console.error("[produits] listerProduitsComplet", produits.error.message);
-    return [];
-  }
+  if (produits.error) echecLecture("produits", produits.error);
+  // Sans la vue, tous les stocks s'afficheraient à 0 : on ne le tolère pas.
+  if (stocks.error) echecLecture("produits/stock_actuel", stocks.error);
 
-  const mapStock = new Map<
-    string,
-    { quantite: number; categorie_nom: string | null }
-  >();
-  for (const s of (stocks.data ?? []) as {
-    id: string;
-    quantite: number;
-    categorie_nom: string | null;
-  }[]) {
-    mapStock.set(s.id, { quantite: s.quantite, categorie_nom: s.categorie_nom });
-  }
+  const mapStock = new Map(
+    (stocks.data as { id: string; quantite: number; categorie_nom: string | null }[])
+      .map((s) => [s.id, s]),
+  );
 
-  return (produits.data ?? []).map((p) => {
+  return (produits.data as Produit[]).map((p) => {
     const stock = mapStock.get(p.id);
     return {
-      ...(p as Produit),
+      ...p,
       quantite: stock?.quantite ?? 0,
       categorie_nom: stock?.categorie_nom ?? null,
     };
-  }) as ProduitAvecStock[];
-}
-
-export async function lireProduit(id: string): Promise<Produit | null> {
-  const supabase = createAdminClient();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[produits] lireProduit", error.message);
-    return null;
-  }
-  return (data as Produit) ?? null;
+  });
 }
 
 /* --------------------------------------------------------------- écriture */
@@ -74,8 +48,7 @@ export async function lireProduit(id: string): Promise<Produit | null> {
 export async function creerProduit(
   champs: ChampsProduit,
 ): Promise<{ produit: Produit } | { erreur: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   const { data, error } = await supabase
     .from(TABLE)
@@ -96,8 +69,7 @@ export async function modifierProduit(
   id: string,
   champs: Partial<ChampsProduit & { actif: boolean }>,
 ): Promise<{ erreur?: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   const { error } = await supabase.from(TABLE).update(champs).eq("id", id);
   if (error) {
@@ -110,8 +82,7 @@ export async function modifierProduit(
 }
 
 export async function supprimerProduit(id: string): Promise<{ erreur?: string }> {
-  const supabase = createAdminClient();
-  if (!supabase) return { erreur: "Supabase n'est pas configuré." };
+  const supabase = clientSupabase();
 
   // La clé étrangère mouvements → produits est en ON DELETE RESTRICT.
   const { error } = await supabase.from(TABLE).delete().eq("id", id);
