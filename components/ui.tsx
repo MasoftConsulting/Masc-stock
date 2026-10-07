@@ -20,7 +20,7 @@ export function EnTetePage({
 }) {
   return (
     <header className="pt-8 md:pt-14">
-      {avant}
+      {avant && <div>{avant}</div>}
       <span
         className={`inline-flex items-center gap-2 rounded-full bg-ink/5 px-3 py-1 text-[0.75rem] font-medium uppercase tracking-[0.2em] text-ink-soft ${
           avant ? "mt-6" : ""

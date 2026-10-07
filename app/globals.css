@@ -44,7 +44,9 @@ body {
 }
 
 body {
-  background: linear-gradient(180deg, #f7f6f3 0%, #ebe8e2 100%);
+  /* Dégradé sur le premier écran, puis la couleur de fin : pas de cassure sur les pages longues. */
+  background: #ebe8e2 linear-gradient(180deg, #f7f6f3 0%, #ebe8e2 100%) no-repeat;
+  background-size: 100% 100vh;
   color: var(--color-ink);
   font-family: var(--font-sans);
   min-height: 100vh;
