@@ -8,6 +8,15 @@ Next.js 16 · React 19 · Supabase · Vercel
 
 ## Documentation
 
+| Document | Public | Markdown | Word |
+|---|---|---|---|
+| Guide utilisateur | Gestion du stock au quotidien | [Lire](docs/GUIDE_UTILISATEUR.md) | [Télécharger](docs/MASC-Stock_Guide-utilisateur.docx) |
+| Documentation d'exploitation | Administrateur | [Lire](docs/DOCUMENTATION_EXPLOITATION.md) | [Télécharger](docs/MASC-Stock_Documentation-exploitation.docx) |
+| Documentation technique | Développeurs | [Lire](docs/DOCUMENTATION_TECHNIQUE.md) | [Télécharger](docs/MASC-Stock_Documentation-technique.docx) |
+
+- [Guide utilisateur](docs/GUIDE_UTILISATEUR.md) — utilisation écran par
+  écran avec captures : tableau de bord, produits, mouvements, annulation,
+  inventaire, fiches client, questions fréquentes.
 - [Documentation technique](docs/DOCUMENTATION_TECHNIQUE.md) — architecture,
   modèle de données, règles garanties par la base, conventions de code.
 - [Documentation d'exploitation](docs/DOCUMENTATION_EXPLOITATION.md) —
