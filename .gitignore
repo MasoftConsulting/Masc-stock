@@ -43,3 +43,6 @@ next-env.d.ts
 # supabase cli (état local du link)
 supabase/.temp
 !.env.example
+
+# fichiers temporaires Word / Office
+~$*
