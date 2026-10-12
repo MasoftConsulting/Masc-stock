@@ -15,7 +15,7 @@ import { CELLULE, Carte, Grille, MessageErreur, Tableau, Tuile, Vide } from "@/c
 import { BasculeVue, useVue } from "@/components/vue";
 import { useSuccesAction } from "@/components/toasts";
 
-type FiltreStatut = "" | "bas" | "rupture";
+type FiltreStatut = "" | "en_stock" | "bas" | "rupture";
 
 const BOUTON_DISCRET =
   "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[0.85rem] text-ink-soft transition-all duration-500 ease-mass hover:bg-ink/5 hover:text-ink";
@@ -53,6 +53,11 @@ export function GestionProduits({
       }
       if (categorieFiltre && p.categorie_id !== categorieFiltre) return false;
       const statut = statutStock(p.quantite, p.seuil_alerte);
+
+      // « En stock » = tout ce qui n'est pas à zéro (OK + Bas).
+      // Cela répond à la question : « qu'est-ce que j'ai physiquement ? »
+      if (statutFiltre === "en_stock" && statut === "rupture") return false;
+
       if (statutFiltre === "bas" && statut === "ok") return false;
       if (statutFiltre === "rupture" && statut !== "rupture") return false;
       return true;
@@ -117,6 +122,7 @@ export function GestionProduits({
               className="champ"
             >
               <option value="">Tous</option>
+              <option value="en_stock">En stock</option>
               <option value="bas">À réapprovisionner</option>
               <option value="rupture">En rupture</option>
             </select>

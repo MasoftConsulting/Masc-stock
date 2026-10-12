@@ -42,9 +42,9 @@ export default async function PageTableauDeBord() {
       <Reveler delai={60}>
         <div className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Indicateur
-            libelle="Références actives"
-            valeur={formaterNombre(produits.actifs)}
-            detail={`${formaterNombre(produits.unites)} unités en stock`}
+            libelle="En stock"
+            valeur={formaterNombre(produits.unites)}
+            detail="unités au total"
           />
           <Indicateur
             libelle="En rupture"

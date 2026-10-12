@@ -16,7 +16,12 @@ export type ActiviteType = { nb_mouvements: number; unites: number };
 
 export type TableauDeBord = {
   periode: Periode;
-  produits: { actifs: number; unites: number; bas: number; rupture: number };
+  produits: {
+    /** Nombre total d'unités en stock, tous produits actifs confondus. */
+    unites: number;
+    bas: number;
+    rupture: number;
+  };
   /** Produits actifs en rupture puis sous le seuil, les plus critiques d'abord. */
   alertes: ProduitAvecStock[];
   activite: Record<TypeMouvement, ActiviteType>;
@@ -54,6 +59,7 @@ export async function lireTableauDeBord(): Promise<TableauDeBord> {
 
   const actifs = produits.filter((p) => p.actif);
   const statut = (p: ProduitAvecStock) => statutStock(p.quantite, p.seuil_alerte);
+
   const alertes = actifs
     .filter((p) => statut(p) !== "ok")
     .sort(
@@ -65,7 +71,6 @@ export async function lireTableauDeBord(): Promise<TableauDeBord> {
   return {
     periode,
     produits: {
-      actifs: actifs.length,
       unites: actifs.reduce((s, p) => s + p.quantite, 0),
       bas: alertes.filter((p) => statut(p) === "bas").length,
       rupture: alertes.filter((p) => statut(p) === "rupture").length,
