@@ -121,6 +121,14 @@ build s'ils sont importés côté client.
 
 ## 4. Modèle de données
 
+Les objets du stock (tables, vue `stock_actuel`, séquences, fonctions) sont
+dans le schéma **`stock`**, exposé par l'API (Dashboard → Integrations → Data
+API → *Exposed schemas*) et accessible au seul rôle `service_role`. Le client
+de `lib/supabase.ts` l'utilise par défaut ; les tables de masc-fiche (§4.2)
+restent dans `public` et se lisent via `tablesPartagees()`. PostgREST ne
+joignant pas entre schémas, le nom du client d'un mouvement ou d'un BL est lu
+par une seconde requête.
+
 ### 4.1 Tables du stock
 
 **`categories`** — `id`, `nom` (unique), `description`, `actif`, `created_at`, `updated_at`
@@ -156,9 +164,11 @@ désactivés (colonne `actif`).
 
 ### 4.2 Tables de masc-fiche utilisées
 
-`clients` est **lue seulement** (id, nom, contact, telephone, email, adresse).
-Ne jamais modifier son schéma depuis ce projet. Autres tables présentes dans
-la base et à ne pas toucher : `contacts`, `equipements`, `journal`,
+Schéma `public`. `clients` est **lue seulement** (id, nom, contact,
+telephone, email, adresse) ; `contacts` et `equipements` sont lues pour les
+BL ; `journal` reçoit l'audit des actions du stock. Ne jamais modifier leur
+schéma depuis ce projet. Autres tables présentes dans la base et à ne pas
+toucher : `contacts`, `equipements`, `journal`,
 `techniciens`, `fiches_intervention`, `codes_mfa`, `settings`, `print_points`.
 
 ### 4.3 Règles garanties par la base
@@ -177,7 +187,9 @@ affichés tels quels dans l'interface.
 
 ### 4.4 Fonctions SQL (RPC)
 
-Toutes en `set search_path = public`, exécutables par `service_role` uniquement.
+Toutes dans le schéma `stock` (`set search_path = stock`, ou `''` pour les
+fonctions `*_bl_complet` en SECURITY DEFINER), exécutables par `service_role`
+uniquement.
 
 | Fonction | Rôle |
 |---|---|
@@ -203,6 +215,7 @@ agrégats sont calculés en SQL car l'API Supabase plafonne chaque réponse à
 | `20261006000100_integrite_stock.sql` | CHECK, FK RESTRICT, triggers, `valider_inventaire`, vue `security_invoker` |
 | `20261006000200_syntheses_clients.sql` | Fonctions de synthèse |
 | `20261006000300_annulation_compatibilite.sql` | Annulation, `compatibilite` |
+| `20261028000000_schema_stock.sql` | Déplace les objets du stock de `public` vers le schéma `stock`, droits réservés à `service_role` |
 
 Créer une migration : `npx supabase migration new <nom>`, écrire le SQL,
 vérifier avec `npx supabase db push --dry-run`. Procédure d'application :
