@@ -176,7 +176,7 @@ toucher : `contacts`, `equipements`, `journal`,
 | Règle | Mécanisme | Code d'erreur |
 |---|---|---|
 | Stock jamais négatif | Trigger `mouvements_verifier_stock` (BEFORE INSERT/DELETE), verrou `FOR UPDATE` sur le produit pour sérialiser les sorties concurrentes | `MS001` |
-| Entrées/sorties non supprimables | même trigger | `MS002` |
+| Entrées/sorties non supprimables (sauf celles d'un BL, supprimées à la modification ou suppression du bon) | même trigger | `MS002` |
 | Champs déterminant le stock non modifiables | Trigger `mouvements_proteger` (BEFORE UPDATE) — autorise la mise à NULL de `client_id` (suppression d'un client dans masc-fiche) | `MS003` |
 | Pas de double annulation | `annuler_mouvement` + trigger | `MS004` |
 | Produit/catégorie utilisés non supprimables | FK ON DELETE RESTRICT | `23503` |
@@ -216,6 +216,7 @@ agrégats sont calculés en SQL car l'API Supabase plafonne chaque réponse à
 | `20261006000200_syntheses_clients.sql` | Fonctions de synthèse |
 | `20261006000300_annulation_compatibilite.sql` | Annulation, `compatibilite` |
 | `20261028000000_schema_stock.sql` | Déplace les objets du stock de `public` vers le schéma `stock`, droits réservés à `service_role` |
+| `20261028000100_stock_jamais_negatif.sql` | Rétablit le contrôle « stock jamais négatif » (`MS001`) perdu avec les BL |
 
 Créer une migration : `npx supabase migration new <nom>`, écrire le SQL,
 vérifier avec `npx supabase db push --dry-run`. Procédure d'application :
