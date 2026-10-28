@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Période d'analyse lue dans l'URL (`?periode=mois` ou `?du=…&au=…`).
  *
- * Module pur : utilisé par les pages, les téléchargements (PDF / CSV) et
+ * Module pur : utilisé par les pages, les téléchargements (PDF / Excel) et
  * testable sans Next. Les dates sont en UTC, comme `current_date` côté base.
  */
 

@@ -20,7 +20,7 @@ faites à ses clients.
 | Données | Supabase (PostgreSQL), **projet partagé avec masc-fiche** |
 | Validation | zod 4 |
 | Session | Cookie JWT HS256 signé (`jose`) |
-| Exports | PDF (`@react-pdf/renderer`), CSV |
+| Exports | PDF (`@react-pdf/renderer`), Excel `.xlsx` (`exceljs`) |
 | Hébergement | Vercel |
 
 ### Principe directeur
@@ -55,7 +55,7 @@ app/(app)/layout.tsx  navigation + toasts, revérifie la session
    ├── Pages (Server Components) ──► lib/*.ts (lectures) ──┐
    ├── Server Actions (actions.ts) ─► lib/action.ts        │
    │        session + zod ──────────► lib/*.ts (écritures) ├─► Supabase
-   └── Route handlers (PDF / CSV) ──► lib/export/*  ───────┘   (service_role)
+   └── Route handlers (PDF / XLSX) ──► lib/export/*  ───────┘   (service_role)
 ```
 
 - **Aucun accès à la base depuis le navigateur.** Toutes les requêtes passent
@@ -87,7 +87,7 @@ app/
     clients/              Liste des clients + livraisons
       [id]/               Fiche d'inventaire client
         pdf/route.ts      Téléchargement PDF
-        csv/route.ts      Téléchargement CSV
+        xlsx/route.ts     Téléchargement Excel
 components/
   navigation.tsx          Barre flottante + menu mobile
   ui.tsx                  Briques : EnTetePage, Carte, Tableau, Tuile, Grille,
@@ -106,7 +106,7 @@ lib/
   format.ts               formaterDate/Nombre, normaliser/correspond (recherche)
   periode.ts              Lecture des périodes d'URL (module pur)
   produits.ts | categories.ts | mouvements.ts | clients.ts | tableau-de-bord.ts
-  export/                 fiche-client-pdf.tsx, fiche-client-csv.ts, telechargement.ts
+  export/                 fiche-client-pdf.tsx, fiche-client-xlsx.ts, telechargement.ts
 supabase/migrations/      Schéma versionné (voir §5)
 donnees/                  Scripts SQL de données ponctuels (reprise de l'existant)
 proxy.ts                  Garde d'accès globale
@@ -228,8 +228,8 @@ de production partagée avec masc-fiche.
 - **Validation** — toute entrée de formulaire passe par un schéma zod
   (`lib/champs.ts`). Le type d'un mouvement est fixé côté serveur
   (`creerEntreeAction` / `creerSortieAction`), jamais lu dans le formulaire.
-- **Export CSV** — les cellules commençant par `= + - @` sont préfixées d'une
-  apostrophe (injection de formules Excel), sauf numéros de téléphone.
+- **Export Excel** — les textes sont écrits comme chaînes, jamais comme
+  formules : pas d'injection de formules possible.
 - **Limites connues** — pas de limitation des tentatives de connexion ; la
   déconnexion supprime le cookie mais ne révoque pas un jeton copié (le seul
   moyen est de changer `SESSION_SECRET`).
@@ -289,9 +289,9 @@ domaine métier : `listerProduitsComplet`, `creerSortieAction`,
 
 ---
 
-## 8. Exports PDF et CSV
+## 8. Exports PDF et Excel
 
-- Routes : `GET /clients/[id]/pdf?periode=…` et `/clients/[id]/csv?periode=…`.
+- Routes : `GET /clients/[id]/pdf?periode=…` et `/clients/[id]/xlsx?periode=…`.
 - `lib/export/telechargement.ts` : session, période, fiche, nom de fichier
   ASCII (`fiche_<client>_<du>_<au>.pdf`), `Cache-Control: no-store`.
 - PDF : page 1 signable (synthèse + cadres de signature), annexe avec le
@@ -331,5 +331,5 @@ ESM avec esbuild (react-pdf n'expose que des exports ESM).
 | Journal des mouvements | 200 derniers chargés ; recherche et filtre côté client. Piste : filtres dans l'URL + pagination serveur |
 | Connexion | Pas de limite de tentatives |
 | Types de la base | Écrits à la main (`lib/types-stock.ts`). Piste : `supabase gen types` |
-| Tests | Aucun test automatisé. Pistes : `statutStock`, `normaliser`, `lirePeriode`, export CSV |
+| Tests | Aucun test automatisé. Pistes : `statutStock`, `normaliser`, `lirePeriode`, export Excel |
 | Imprimantes compatibles | Texte libre, non relié au parc `equipements` de masc-fiche |

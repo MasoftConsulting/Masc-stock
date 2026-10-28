@@ -2,7 +2,7 @@
 
 Gestion du stock de consommables d'imprimerie de MA SOFT CONSULTING :
 produits, entrées, sorties, inventaire, livraisons par client et fiches
-d'inventaire client (PDF / CSV).
+d'inventaire client (PDF / Excel).
 
 Next.js 16 · React 19 · Supabase · Vercel
 

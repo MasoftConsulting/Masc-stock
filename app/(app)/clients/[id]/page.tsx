@@ -89,11 +89,11 @@ export default async function PageFicheClient({
               PDF
             </a>
             <a
-              href={`/clients/${id}/csv?${query}`}
+              href={`/clients/${id}/xlsx?${query}`}
               className={`${BOUTON_TELECHARGER} bg-ink/5 text-ink hover:bg-ink/10`}
             >
               <IconeTelechargement />
-              Excel (CSV)
+              Excel
             </a>
           </div>
         </div>

@@ -232,7 +232,7 @@ La fiche montre, pour la période choisie :
 - **PDF** : fiche mise en page avec le logo, prête à imprimer ou à faire
   **signer par le client** (cadres de signature prévus). Le détail des
   livraisons est en annexe.
-- **Excel (CSV)** : le même contenu en tableau, à ouvrir dans Excel.
+- **Excel** : le même contenu en classeur `.xlsx` (feuilles « Synthèse » et « Livraisons »), dates et quantités directement exploitables.
 
 ---
 

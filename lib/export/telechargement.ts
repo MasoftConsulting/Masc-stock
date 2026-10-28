@@ -5,7 +5,7 @@ import { lireFicheClient, type FicheClient } from "../clients";
 import { lirePeriode } from "../periode";
 
 /**
- * Socle commun des téléchargements de fiche client (PDF, CSV).
+ * Socle commun des téléchargements de fiche client (PDF, Excel).
  *
  * Les route handlers ne passent pas par les Server Actions : on revérifie la
  * session ici, en plus du proxy.
