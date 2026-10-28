@@ -215,3 +215,21 @@ table {
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
   }
 }
+/* ===========================================================================
+   RÈGLES POUR L'IMPRESSION (Évite les pages blanches et les marges)
+   =========================================================================== */
+@media print {
+  @page {
+    margin: 0;
+    size: A4 portrait;
+  }
+  body {
+    margin: 0;
+    background: white;
+  }
+  /* On force le conteneur principal à ne pas déborder sur une 2ème page */
+  .plan-travail {
+    min-height: 100vh;
+    height: auto;
+  }
+}

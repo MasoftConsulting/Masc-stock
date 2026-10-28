@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { actionFormulaire, type EtatAction } from "@/lib/action";
 import { champ } from "@/lib/champs";
+import { clientSupabase } from "@/lib/supabase";
+import { enregistrerJournal } from "@/lib/journal";
 import {
   creerMouvement,
   validerInventaire,
@@ -18,6 +20,7 @@ function revaliderStock() {
   revalidatePath("/produits");
   revalidatePath("/");
   revalidatePath("/clients", "layout");
+  revalidatePath("/journal");
 }
 
 const champsCommuns = {
@@ -27,11 +30,14 @@ const champsCommuns = {
   note: champ.texteOptionnel,
 };
 
-/*
- * Une action par type de mouvement : le type est fixé côté serveur, jamais
- * lu dans le formulaire — un HTML trafiqué ne peut pas changer une entrée
- * en sortie.
- */
+async function infoProduit(produitId: string): Promise<{ reference: string; nom: string } | null> {
+  const { data } = await clientSupabase()
+    .from("produits")
+    .select("reference, nom")
+    .eq("id", produitId)
+    .maybeSingle();
+  return data ?? null;
+}
 
 export const creerEntreeAction = actionFormulaire(
   z.object({ ...champsCommuns, fournisseur: champ.texteOptionnel }),
@@ -42,6 +48,20 @@ export const creerEntreeAction = actionFormulaire(
       client_id: null,
     });
     if ("erreur" in resultat) return { erreur: resultat.erreur };
+
+    const produit = await infoProduit(d.produit_id);
+
+    await enregistrerJournal({
+      action: "mouvement.entree",
+      table_cible: "mouvements",
+      ligne_id: resultat.mouvement.id,
+      details: {
+        reference: produit?.reference ?? null,
+        nom: produit?.nom ?? null,
+        quantite: d.quantite,
+        fournisseur: d.fournisseur,
+      },
+    });
 
     revaliderStock();
     return {
@@ -64,6 +84,20 @@ export const creerSortieAction = actionFormulaire(
     });
     if ("erreur" in resultat) return { erreur: resultat.erreur };
 
+    const produit = await infoProduit(d.produit_id);
+
+    await enregistrerJournal({
+      action: "mouvement.sortie",
+      table_cible: "mouvements",
+      ligne_id: resultat.mouvement.id,
+      details: {
+        reference: produit?.reference ?? null,
+        nom: produit?.nom ?? null,
+        quantite: d.quantite,
+        client_id: d.client_id,
+      },
+    });
+
     revaliderStock();
     return {
       token: resultat.mouvement.id,
@@ -72,11 +106,6 @@ export const creerSortieAction = actionFormulaire(
   },
 );
 
-/**
- * Inventaire complet. Le formulaire envoie un champ `compte_<idProduit>` par
- * produit (vide = non compté) ; l'écart avec le stock réel est calculé par la
- * base au moment de la validation (voir `validerInventaire`).
- */
 const PREFIXE_COMPTE = "compte_";
 
 const schemaInventaire = z
@@ -115,13 +144,19 @@ export const validerInventaireAction = actionFormulaire(
       return { erreur: "Aucun écart avec le stock actuel — rien à ajuster." };
     }
 
+    await enregistrerJournal({
+      action: "mouvement.inventaire",
+      table_cible: "mouvements",
+      ligne_id: null,
+      details: { nb_ecarts: resultat.nombre, note },
+    });
+
     revaliderStock();
     revalidatePath("/mouvements/inventaire");
     redirect(`/mouvements?inventaire=${resultat.nombre}`);
   },
 );
 
-/** Annule un mouvement (ajustement inverse lié à l'original). */
 export const annulerMouvementAction = actionFormulaire(
   z.object({
     id: champ.id,
@@ -130,6 +165,13 @@ export const annulerMouvementAction = actionFormulaire(
   async ({ id, motif }) => {
     const resultat = await annulerMouvement(id, motif);
     if (resultat.erreur) return { erreur: resultat.erreur };
+
+    await enregistrerJournal({
+      action: "mouvement.annulation",
+      table_cible: "mouvements",
+      ligne_id: id,
+      details: { motif },
+    });
 
     revaliderStock();
     return { token: `${id}-annule`, message: "Mouvement annulé." };

@@ -10,6 +10,8 @@ const LIENS = [
   { href: "/produits", label: "Produits" },
   { href: "/categories", label: "Catégories" },
   { href: "/mouvements", label: "Mouvements" },
+  { href: "/journal", label: "Journal" },
+  { href: "/livraisons", label: "Livraisons" },
   { href: "/clients", label: "Clients" },
 ];
 
@@ -26,16 +28,14 @@ export function Navigation({
 
   return (
     <>
+      {/* AJOUT DE print:hidden ICI */}
       <header
-        className="sticky top-0 z-30 px-4 pt-5 pb-2"
+        className="sticky top-0 z-30 px-4 pt-5 pb-2 print:hidden"
         style={{ paddingTop: "max(1.25rem, env(safe-area-inset-top))" }}
       >
         <nav className="mx-auto flex w-full max-w-6xl items-center gap-3 rounded-full border border-white/60 bg-white/70 p-2 pl-3 shadow-flottant backdrop-blur-2xl">
           <Link href="/" className="flex items-center gap-2.5 pr-2">
-            <Logo hauteur={34} />
-            <span className="hidden font-display text-[0.9rem] font-semibold tracking-[-0.02em] sm:block">
-              MASC Stock
-            </span>
+            <Logo taille={34} />
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
@@ -86,8 +86,9 @@ export function Navigation({
         </nav>
       </header>
 
+      {/* AJOUT DE print:hidden ICI AUSSI */}
       <div
-        className={`fixed inset-0 z-20 bg-white/85 backdrop-blur-3xl transition-all duration-700 ease-mass md:hidden ${
+        className={`fixed inset-0 z-20 bg-white/85 backdrop-blur-3xl transition-all duration-700 ease-mass md:hidden print:hidden ${
           ouvert ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >

@@ -150,3 +150,119 @@ export type LigneFicheClient = {
   premiere_livraison: string;
   derniere_livraison: string;
 };
+
+/* --------------------------------------------------------------- équipements */
+
+export type Equipement = {
+  id: string;
+  client_id: string;
+  marque_modele: string | null;
+  numero_serie: string | null;
+  localisation: string | null;
+};
+
+/* --------------------------------------------------------------- livraisons */
+
+export type BonLivraisonLigne = {
+  id: string;
+  bl_id: string;
+  produit_id: string;
+  quantite: number;
+};
+
+export type BonLivraison = {
+  id: string;
+  numero: string;
+  date_livraison: string;
+  client_id: string;
+  contact_noms: string | null;
+  contact_details: string | null;
+  numero_commande: string | null;
+  emis_par: string;
+  signature_client: string | null;
+  statut: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BonLivraisonAvecDetails = BonLivraison & {
+  client_nom: string;
+  client_adresse: string | null;
+  client_equipements: Equipement[];
+  lignes: (BonLivraisonLigne & {
+    produit_reference: string;
+    produit_nom: string;
+    produit_type: string | null;
+    produit_compatibilite: string | null;
+  })[];
+};
+
+export type Contact = {
+  id: string;
+  client_id: string;
+  nom: string;
+  poste: string | null;
+  email: string | null;
+  telephone: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/* ----------------------------------------------------------------- journal */
+
+/**
+ * Format : `domaine.verbe` (ex. `bl.creation`, `produit.modification`).
+ * Compatible avec la table `journal` existante (partagée entre apps MASC).
+ */
+export type ActionJournal =
+  | "bl.creation" | "bl.modification" | "bl.suppression"
+  | "produit.creation" | "produit.modification" | "produit.bascule" | "produit.suppression"
+  | "categorie.creation" | "categorie.modification" | "categorie.bascule" | "categorie.suppression"
+  | "mouvement.entree" | "mouvement.sortie" | "mouvement.inventaire" | "mouvement.annulation";
+
+export type EntreeJournal = {
+  id: string;
+  created_at: string;
+  action: string;                       // text libre côté DB (on caste en ActionJournal à la lecture)
+  table_cible: string | null;
+  ligne_id: string | null;
+  acteur_id: string | null;
+  acteur_nom: string | null;
+  details: Record<string, unknown> | null;
+};
+
+/** Libellé français + ton visuel pour chaque action. */
+export function libelleAction(action: string): {
+  libelle: string;
+  ton: "jade" | "amber" | "rouille" | "neutre";
+} {
+  switch (action) {
+    case "bl.creation":              return { libelle: "Création d'un bon de livraison", ton: "jade" };
+    case "bl.modification":          return { libelle: "Modification d'un bon de livraison", ton: "amber" };
+    case "bl.suppression":           return { libelle: "Suppression d'un bon de livraison", ton: "rouille" };
+    case "produit.creation":         return { libelle: "Création d'un produit", ton: "jade" };
+    case "produit.modification":     return { libelle: "Modification d'un produit", ton: "amber" };
+    case "produit.bascule":          return { libelle: "Changement de statut d'un produit", ton: "neutre" };
+    case "produit.suppression":      return { libelle: "Suppression d'un produit", ton: "rouille" };
+    case "categorie.creation":       return { libelle: "Création d'une catégorie", ton: "jade" };
+    case "categorie.modification":   return { libelle: "Modification d'une catégorie", ton: "amber" };
+    case "categorie.bascule":        return { libelle: "Changement de statut d'une catégorie", ton: "neutre" };
+    case "categorie.suppression":    return { libelle: "Suppression d'une catégorie", ton: "rouille" };
+    case "mouvement.entree":         return { libelle: "Entrée de stock", ton: "jade" };
+    case "mouvement.sortie":         return { libelle: "Sortie de stock", ton: "amber" };
+    case "mouvement.inventaire":     return { libelle: "Inventaire validé", ton: "neutre" };
+    case "mouvement.annulation":     return { libelle: "Annulation de mouvement", ton: "rouille" };
+    default:                         return { libelle: action, ton: "neutre" };
+  }
+}
+
+/** Libellé humain pour une `table_cible`. */
+export function libelleTableCible(table: string | null): string {
+  switch (table) {
+    case "bons_livraison": return "Bon de livraison";
+    case "produits":       return "Produit";
+    case "categories":     return "Catégorie";
+    case "mouvements":     return "Mouvement";
+    default:               return table ?? "—";
+  }
+}
