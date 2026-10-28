@@ -35,7 +35,7 @@ export function Navigation({
       >
         <nav className="mx-auto flex w-full max-w-6xl items-center gap-3 rounded-full border border-white/60 bg-white/70 p-2 pl-3 shadow-flottant backdrop-blur-2xl">
           <Link href="/" className="flex items-center gap-2.5 pr-2">
-            <Logo taille={34} />
+            <Logo hauteur={34} />
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
