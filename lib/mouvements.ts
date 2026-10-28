@@ -1,5 +1,5 @@
 import "server-only";
-import { clientSupabase, echecLecture } from "./supabase";
+import { clientSupabase, echecLecture, tablesPartagees } from "./supabase";
 import type {
   Mouvement,
   MouvementAvecDetails,
@@ -25,9 +25,9 @@ export type FiltresMouvements = {
 /* ---------------------------------------------------------------- lecture */
 
 /**
- * Liste des mouvements, la plus récente en tête, avec le nom du produit et
- * du client (jointures à la volée, car PostgREST sait les faire proprement
- * sur des relations déclarées en FK).
+ * Liste des mouvements, la plus récente en tête, avec le nom du produit
+ * (jointure PostgREST, même schéma) et du client (lu à part : `clients` est
+ * dans `public`, et PostgREST ne joint pas entre schémas).
  */
 export async function listerMouvements(
   filtres: FiltresMouvements = {},
@@ -37,7 +37,7 @@ export async function listerMouvements(
   let requete = clientSupabase()
     .from(TABLE)
     .select(
-      "*, produits (reference, nom), clients (nom)",
+      "*, produits (reference, nom)",
     )
     .order("date_mouvement", { ascending: false })
     .order("created_at", { ascending: false })
@@ -56,16 +56,24 @@ export async function listerMouvements(
 
   type Ligne = Mouvement & {
     produits: { reference: string; nom: string } | null;
-    clients: { nom: string } | null;
   };
+  const lignes = data as Ligne[];
 
-  return (data as Ligne[]).map((l) => {
-    const { produits, clients, ...reste } = l;
+  const idsClients = [...new Set(lignes.flatMap((l) => (l.client_id ? [l.client_id] : [])))];
+  const nomsClients = new Map<string, string>();
+  if (idsClients.length > 0) {
+    const clients = await tablesPartagees().from("clients").select("id, nom").in("id", idsClients);
+    if (clients.error) echecLecture("mouvements/clients", clients.error);
+    for (const c of clients.data) nomsClients.set(c.id, c.nom);
+  }
+
+  return lignes.map((l) => {
+    const { produits, ...reste } = l;
     return {
       ...reste,
       produit_reference: produits?.reference ?? "—",
       produit_nom: produits?.nom ?? "Produit supprimé",
-      client_nom: clients?.nom ?? null,
+      client_nom: l.client_id ? (nomsClients.get(l.client_id) ?? null) : null,
     };
   });
 }

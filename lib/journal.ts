@@ -1,5 +1,5 @@
 import "server-only";
-import { clientSupabase } from "./supabase";
+import { tablesPartagees } from "./supabase";
 import type { ActionJournal, EntreeJournal } from "./types-stock";
 
 const TABLE_JOURNAL = "journal";
@@ -20,7 +20,7 @@ type EntreeJournalInput = {
  */
 export async function enregistrerJournal(entree: EntreeJournalInput): Promise<void> {
   try {
-    const { error } = await clientSupabase().from(TABLE_JOURNAL).insert({
+    const { error } = await tablesPartagees().from(TABLE_JOURNAL).insert({
       action: entree.action,
       table_cible: entree.table_cible,
       ligne_id: entree.ligne_id ?? null,
@@ -41,7 +41,7 @@ export async function listerJournal(
 ): Promise<EntreeJournal[]> {
   const limite = options.limite ?? 200;
 
-  let requete = clientSupabase()
+  let requete = tablesPartagees()
     .from(TABLE_JOURNAL)
     .select("*")
     .order("created_at", { ascending: false })

@@ -11,6 +11,10 @@ import { createClient } from "@supabase/supabase-js";
  * Une configuration manquante est une erreur de déploiement, pas un cas
  * normal : on lève une exception (affichée par `error.tsx`) plutôt que de
  * laisser croire que la base est vide.
+ *
+ * Les tables de la gestion de stock vivent dans le schéma `stock` (schéma
+ * par défaut de ce client). Les tables partagées avec MASC Fiche restent dans
+ * `public` : y accéder via `tablesPartagees()`.
  */
 export function clientSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -22,8 +26,14 @@ export function clientSupabase() {
   }
 
   return createClient(url, cle, {
+    db: { schema: "stock" },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+/** Tables de MASC Fiche (schéma `public`) : clients, contacts, equipements, journal. */
+export function tablesPartagees() {
+  return clientSupabase().schema("public");
 }
 
 /**

@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { clientSupabase, echecLecture } from "./supabase";
+import { clientSupabase, echecLecture, tablesPartagees } from "./supabase";
 import { listerMouvements } from "./mouvements";
 import type { Periode } from "./periode";
 import type {
@@ -24,7 +24,7 @@ const RESUME_VIDE: ResumeLivraisons = {
 };
 
 export async function listerClients(): Promise<Client[]> {
-  const { data, error } = await clientSupabase()
+  const { data, error } = await tablesPartagees()
     .from(TABLE)
     .select("*")
     .order("nom");
@@ -66,7 +66,7 @@ export async function resumeLivraisons(
 export async function lireClient(id: string): Promise<Client | null> {
   if (!z.uuid().safeParse(id).success) return null;
 
-  const { data, error } = await clientSupabase()
+  const { data, error } = await tablesPartagees()
     .from(TABLE)
     .select("*")
     .eq("id", id)

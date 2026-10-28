@@ -1,5 +1,5 @@
 import "server-only";
-import { clientSupabase } from "./supabase";
+import { clientSupabase, tablesPartagees } from "./supabase";
 import type { BonLivraison, BonLivraisonAvecDetails, Equipement } from "./types-stock";
 
 const TABLE_BL = "bons_livraison";
@@ -7,10 +7,15 @@ const TABLE_LIGNES = "bons_livraison_lignes";
 
 /* ---------------------------------------------------------------- lecture */
 
+/*
+ * `clients` est dans le schéma `public` et les BL dans `stock` : PostgREST ne
+ * joint pas entre schémas, le client est donc lu à part.
+ */
+
 export async function listerBonsLivraison(): Promise<(BonLivraison & { client_nom: string })[]> {
   const { data, error } = await clientSupabase()
     .from(TABLE_BL)
-    .select("*, clients (nom)")
+    .select("*")
     .order("date_livraison", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(100);
@@ -20,22 +25,26 @@ export async function listerBonsLivraison(): Promise<(BonLivraison & { client_no
     return [];
   }
 
-  type Ligne = BonLivraison & { clients: { nom: string } | null };
+  const bons = (data ?? []) as BonLivraison[];
+  const idsClients = [...new Set(bons.map((b) => b.client_id))];
+  const nomsClients = new Map<string, string>();
+  if (idsClients.length > 0) {
+    const clients = await tablesPartagees().from("clients").select("id, nom").in("id", idsClients);
+    if (clients.error) console.error("[bl] listerBonsLivraison - clients", clients.error.message);
+    for (const c of clients.data ?? []) nomsClients.set(c.id, c.nom);
+  }
 
-  return ((data ?? []) as Ligne[]).map((l) => {
-    const { clients, ...reste } = l;
-    return {
-      ...reste,
-      client_nom: clients?.nom ?? "Client supprimé",
-    };
-  });
+  return bons.map((b) => ({
+    ...b,
+    client_nom: nomsClients.get(b.client_id) ?? "Client supprimé",
+  }));
 }
 
 export async function lireBonLivraison(id: string): Promise<BonLivraisonAvecDetails | null> {
-  // 1. L'en-tête + client
+  // 1. L'en-tête
   const { data: bl, error: errBl } = await clientSupabase()
     .from(TABLE_BL)
-    .select("*, clients (nom, adresse)")
+    .select("*")
     .eq("id", id)
     .maybeSingle();
 
@@ -44,17 +53,24 @@ export async function lireBonLivraison(id: string): Promise<BonLivraisonAvecDeta
     return null;
   }
 
-  // 2. Les lignes + produits ET les équipements du client en parallèle
-  const [lignesRes, equipementsRes] = await Promise.all([
+  // 2. Les lignes + produits, le client ET ses équipements en parallèle
+  const [lignesRes, clientRes, equipementsRes] = await Promise.all([
     clientSupabase()
       .from(TABLE_LIGNES)
       .select("*, produits (reference, nom, categorie_id, description, compatibilite, categories (nom))")
       .eq("bl_id", id),
-    clientSupabase()
+    tablesPartagees()
+      .from("clients")
+      .select("nom, adresse")
+      .eq("id", bl.client_id)
+      .maybeSingle(),
+    tablesPartagees()
       .from("equipements")
       .select("*")
       .eq("client_id", bl.client_id)
   ]);
+
+  if (clientRes.error) console.error("[bl] lireBonLivraison - client", clientRes.error.message);
 
   if (lignesRes.error) {
     console.error("[bl] lireBonLivraison - lignes", lignesRes.error.message);
@@ -79,12 +95,12 @@ export async function lireBonLivraison(id: string): Promise<BonLivraisonAvecDeta
     produit_compatibilite: l.produits?.compatibilite ?? null,
   }));
 
-  type Entete = BonLivraison & { clients: { nom: string; adresse: string | null } | null };
+  const client = clientRes.data as { nom: string; adresse: string | null } | null;
 
   return {
-    ...(bl as Entete),
-    client_nom: (bl as Entete).clients?.nom ?? "Client inconnu",
-    client_adresse: (bl as Entete).clients?.adresse ?? "",
+    ...(bl as BonLivraison),
+    client_nom: client?.nom ?? "Client inconnu",
+    client_adresse: client?.adresse ?? "",
     client_equipements: (equipementsRes.data ?? []) as Equipement[],
     lignes: lignesFormatees,
   } as BonLivraisonAvecDetails;
