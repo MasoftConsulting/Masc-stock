@@ -2,25 +2,33 @@ import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
+import {
+  COOKIE,
+  DUREE_INACTIVITE_MINUTES,
+  DUREE_MAX_JOURS,
+  SESSION_SECRET_MIN_LENGTH,
+} from "./session-constantes";
 
 /**
- * Session mono-utilisateur.
+ * Session mono-utilisateur avec expiration sur inactivité.
  *
- * Un seul code d'accès (CODE_STOCK dans .env.local) ouvre la session. Pas de
- * MFA : tu es seul à utiliser l'application. La session tient dans un cookie
- * httpOnly signé HS256, valable 30 jours.
+ * - Cookie httpOnly signé HS256.
+ * - `exp` = DUREE_INACTIVITE_MINUTES (2 h), prolongé par le proxy à chaque
+ *   requête tant que l'utilisateur est actif.
+ * - `auth_time` = date de connexion initiale, pour la durée absolue
+ *   DUREE_MAX_JOURS (30 j).
  */
 
-const COOKIE = "masc_stock";
-const DUREE_JOURS = 30;
+export type Session = { authentifie: true };
 
-export type Session = {
+type PayloadSession = {
   authentifie: true;
+  auth_time: number;
 };
 
 function secret() {
   const valeur = process.env.SESSION_SECRET;
-  if (!valeur || valeur.length < 32) return null;
+  if (!valeur || valeur.length < SESSION_SECRET_MIN_LENGTH) return null;
   return valeur;
 }
 
@@ -46,15 +54,20 @@ export function estCodeValide(code: string) {
   return attendu.length > 0 && memeCode(code.trim(), attendu);
 }
 
-export async function ouvrirSession() {
+async function signerJeton(authTime: number): Promise<string> {
   const cle = secret();
   if (!cle) throw new Error("SESSION_SECRET manquant ou trop court");
 
-  const jeton = await new SignJWT({ authentifie: true })
+  return new SignJWT({ authentifie: true, auth_time: authTime })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${DUREE_JOURS}d`)
+    .setExpirationTime(`${DUREE_INACTIVITE_MINUTES}m`)
     .sign(new TextEncoder().encode(cle));
+}
+
+export async function ouvrirSession() {
+  const authTime = Math.floor(Date.now() / 1000);
+  const jeton = await signerJeton(authTime);
 
   const store = await cookies();
   store.set(COOKIE, jeton, {
@@ -62,7 +75,7 @@ export async function ouvrirSession() {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: DUREE_JOURS * 24 * 60 * 60,
+    maxAge: DUREE_INACTIVITE_MINUTES * 60,
   });
 }
 
@@ -74,7 +87,17 @@ export async function lireSession(): Promise<Session | null> {
   if (!jeton) return null;
 
   try {
-    await jwtVerify(jeton, new TextEncoder().encode(cle));
+    const { payload } = await jwtVerify(jeton, new TextEncoder().encode(cle));
+
+    const authTime = (payload as unknown as PayloadSession).auth_time;
+
+    // Ancien jeton (avant migration) → force re-login une seule fois.
+    if (typeof authTime !== "number") return null;
+
+    // Durée absolue
+    const ageJours = (Date.now() / 1000 - authTime) / 86400;
+    if (ageJours > DUREE_MAX_JOURS) return null;
+
     return { authentifie: true };
   } catch {
     return null;
